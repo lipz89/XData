@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 using System.Linq.Expressions;
 
 using XData.Common;
@@ -77,8 +78,10 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    if (parameters.Any())
+                    {
+                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    }
 
                     IDataReader reader;
                     var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);

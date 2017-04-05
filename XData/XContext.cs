@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 
 using XData.Common;
 using XData.Core;
@@ -240,7 +241,10 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    if (parameters.Any())
+                    {
+                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    }
                     var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
                     try
                     {
@@ -369,7 +373,10 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    if (parameters.Any())
+                    {
+                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    }
                     var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
                     try
                     {
@@ -447,7 +454,10 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    if (parameters.Any())
+                    {
+                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    }
 
                     var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
                     using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
@@ -529,7 +539,10 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    if (parameters.Any())
+                    {
+                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    }
 
                     using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
                     {
