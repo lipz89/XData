@@ -2,6 +2,7 @@
 # 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
 ################################################################################
 
-/Test
+/Test/bin/Debug
+/Test/obj/Debug
 /XData/bin/Debug
 /XData/obj/Debug
