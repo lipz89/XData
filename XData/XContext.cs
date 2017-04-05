@@ -6,6 +6,7 @@ using System.Linq;
 
 using XData.Common;
 using XData.Core;
+using XData.Extentions;
 
 namespace XData
 {
@@ -241,7 +242,7 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    if (parameters.Any())
+                    if (!parameters.IsNullOrEmpty())
                     {
                         dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
                     }
@@ -373,7 +374,7 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    if (parameters.Any())
+                    if (!parameters.IsNullOrEmpty())
                     {
                         dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
                     }
@@ -454,7 +455,7 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    if (parameters.Any())
+                    if (!parameters.IsNullOrEmpty())
                     {
                         dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
                     }
@@ -539,7 +540,7 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    if (parameters.Any())
+                    if (!parameters.IsNullOrEmpty())
                     {
                         dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
                     }

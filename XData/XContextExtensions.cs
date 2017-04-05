@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 
 using XData.Common;
 using XData.Core;
+using XData.Extentions;
 using XData.Meta;
 using XData.XBuilder;
 
@@ -78,7 +79,7 @@ namespace XData
                     dbCommand.Connection = dbConnection;
                     dbCommand.CommandType = commandType;
                     dbCommand.CommandText = sql;
-                    if (parameters.Any())
+                    if (!parameters.IsNullOrEmpty())
                     {
                         dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
                     }
