@@ -139,7 +139,7 @@ namespace XData
         #endregion
 
         #region JoinBuilder
-
+        /*
         /// <summary>
         /// 内连接查询
         /// </summary>
@@ -194,7 +194,7 @@ namespace XData
         {
             return new Join<T1, T2>(this, JoinType.Cross);
         }
-
+        //*/
         #endregion
 
         #region UpdateBuilder

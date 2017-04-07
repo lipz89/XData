@@ -11,9 +11,10 @@ namespace Test
         [Test]
         public void Test()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
-            var join = db.LeftJoin<Supplier, Cert>((x, y) => x.ID == y.SupplierID)
-                .LeftJoin<CertPicture>((x, y) => x.Right.ID == y.CertID);
+            //var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            //var join = db.LeftJoin<Supplier, Cert>((x, y) => x.ID == y.SupplierID)
+            //    .LeftJoin<CertPicture>((x, y) => x.Right.ID == y.CertID)
+            //    .LeftJoin<Action>((x,y)=>x.Left.Left.ID==y.ID);
         }
     }
 }

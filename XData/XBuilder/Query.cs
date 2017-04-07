@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
-
+using System.Reflection;
 using XData.Common;
 using XData.Core;
 using XData.Core.ExpressionVisitors;
@@ -525,10 +525,67 @@ namespace XData.XBuilder
         protected virtual void SetInnerFields()
         {
             var strs = new Strings();
-            //var outerstrs = new Strings();
+            GetMembers(selector.Body, strs, null);
+            _fieldsPart = strs.ToString();
+            ////var outerstrs = new Strings();
 
-            var newExp = selector.Body as NewExpression;
+            //var newExp = selector.Body as NewExpression;
 
+            //if (selector.Body is MemberInitExpression)
+            //{
+            //    var exp = (MemberInitExpression)selector.Body;
+            //    newExp = exp.NewExpression;
+            //    foreach (var binding in exp.Bindings)
+            //    {
+            //        var me = binding as MemberAssignment;
+            //        var sql = SqlExpressionVistor.Visit(me.Expression, this);
+            //        var field = EscapeSqlIdentifier(binding.Member.Name);
+            //        //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
+            //        strs.Add(string.Format("{0} AS {1}", sql, field));
+            //        namedType.Add(binding.Member, sql);
+            //        //outerstrs.Add(osql);
+            //    }
+            //}
+
+            //var inits = newExp.Arguments;
+            //var mems = newExp.Members;
+            //for (int i = 0; i < mems?.Count; i++)
+            //{
+            //    if (inits[i] is MemberExpression)
+            //    {
+            //        var sql = SqlExpressionVistor.Visit(inits[i], this);
+            //        var field = EscapeSqlIdentifier(mems[i].Name);
+            //        //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
+            //        strs.Add(string.Format("{0} AS {1}", sql, field));
+            //        namedType.Add(mems[i], sql);
+            //        //outerstrs.Add(osql);
+            //    }
+            //    //else if (inits[i] is NewExpression) { }
+            //    else
+            //    {
+            //        throw Error.NotSupportedException("不支持复杂的类型初始化。");
+            //    }
+            //}
+            //_fieldsPart = strs.ToString();
+        }
+
+        protected void GetMembers(Expression expression, Strings strs, MemberInfo member, string path = null)
+        {
+            if (expression is MemberExpression)
+            {
+                var sql = SqlExpressionVistor.Visit(expression, this);
+                var name = member.Name;
+                if (!path.IsNullOrWhiteSpace())
+                {
+                    name = path + "-" + name;
+                }
+                var field = EscapeSqlIdentifier(name);
+                strs.Add(string.Format("{0} AS {1}", sql, field));
+                namedType.Add(member, sql);
+                return;
+            }
+
+            var newExp = expression as NewExpression;
             if (selector.Body is MemberInitExpression)
             {
                 var exp = (MemberInitExpression)selector.Body;
@@ -536,12 +593,7 @@ namespace XData.XBuilder
                 foreach (var binding in exp.Bindings)
                 {
                     var me = binding as MemberAssignment;
-                    var sql = SqlExpressionVistor.Visit(me.Expression, this);
-                    var field = EscapeSqlIdentifier(binding.Member.Name);
-                    //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
-                    strs.Add(string.Format("{0} AS {1}", sql, field));
-                    namedType.Add(binding.Member, sql);
-                    //outerstrs.Add(osql);
+                    GetMembers(me.Expression, strs, binding.Member, path);
                 }
             }
 
@@ -551,27 +603,24 @@ namespace XData.XBuilder
             {
                 if (inits[i] is MemberExpression)
                 {
-                    var sql = SqlExpressionVistor.Visit(inits[i], this);
-                    var field = EscapeSqlIdentifier(mems[i].Name);
-                    //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
-                    strs.Add(string.Format("{0} AS {1}", sql, field));
-                    namedType.Add(mems[i], sql);
-                    //outerstrs.Add(osql);
+                    GetMembers(inits[i], strs, mems[i], path);
                 }
-                //else if (inits[i] is NewExpression) { }
+                else if (inits[i] is NewExpression)
+                {
+                    var _path = mems[i].Name;
+                    if (!path.IsNullOrWhiteSpace())
+                    {
+                        _path = path + "-" + _path;
+                    }
+                    GetMembers(inits[i], strs, null, _path);
+                }
                 else
                 {
                     throw Error.NotSupportedException("不支持复杂的类型初始化。");
                 }
             }
-            _fieldsPart = strs.ToString();
         }
 
         #endregion
-
-        //internal override string GetFieldSql(string field)
-        //{
-        //    return fieldSqls[field];
-        //}
     }
 }
