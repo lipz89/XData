@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 
 using XData.Core.ExpressionVisitors;
@@ -14,13 +13,14 @@ namespace XData.XBuilder
     {
         #region Fields
         private Expression _expression;
-        private Query<T> _privoder;
+        internal ParameterExpression _parameter;
+        private SqlBuilber privoder;
         #endregion
 
         #region Constuctors
-        internal Where(XContext context, Query<T> privoder = null) : base(context)
+        internal Where(XContext context, SqlBuilber privoder) : base(context)
         {
-            this._privoder = privoder;
+            this.privoder = privoder;
         }
         #endregion
 
@@ -67,9 +67,8 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            var typeNames = this._privoder?._typeNames ?? new Dictionary<Type, string> { { typeof(T), GetTableName<T>() } };
-            var wb = new WhereExpressionVistor(_expression, this, typeNames).ToSql();
-            return string.Format(" WHERE ({0})", wb);
+            var wb = SqlExpressionVistor.Visit(_expression, privoder);
+            return string.Format(" WHERE {0}", wb);
         }
 
         #endregion

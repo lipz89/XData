@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 
 using XData.Common;
+using XData.Core;
 using XData.Core.ExpressionVisitors;
 using XData.Extentions;
 using XData.Meta;
@@ -21,18 +22,16 @@ namespace XData.XBuilder
         #region Fields
 
         protected internal bool _useCache;
-        private readonly TableMeta tableMeta;
-        private TableMeta innerTableMeta;
-        protected LambdaExpression selector;
-        protected readonly string _tableName;
         protected Where<T> where;
         protected Order<T> order;
         protected bool _dist;
         protected int? _top;
         protected List<T> _list;
         protected string _fieldsPart;
-        protected string _innerFieldsPart;
-        protected internal Dictionary<Type, string> _typeNames = new Cache<Type, string>();
+        //protected Dictionary<string, string> fieldSqls = new Dictionary<string, string>();
+        private LambdaExpression selector;
+
+        //protected string _innerFieldsPart;
 
         #endregion
 
@@ -78,7 +77,7 @@ namespace XData.XBuilder
                 var wherePart = string.Empty;
                 if (this.where != null)
                 {
-                    this.where._parameterIndex = this._parameterIndex;
+                    this.where.parameterIndex = this.parameterIndex;
                     wherePart = this.where.ToSql();
                 }
                 return wherePart;
@@ -105,18 +104,33 @@ namespace XData.XBuilder
         /// 构造一个查询命令
         /// </summary>
         /// <param name="context"></param>
-        /// <param name="tableName"></param>
-        /// <param name="useCache"></param>
-        internal Query(XContext context, string tableName = null, bool useCache = true) : base(context)
+        internal Query(XContext context) : base(context)
         {
             this.tableMeta = TableMeta.From<T>();
+            this.tableName = this.tableMeta.TableName;
+        }
+        /// <summary>
+        /// 构造一个查询命令
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="tableName"></param>
+        /// <param name="useCache"></param>
+        internal Query(XContext context, string tableName, bool useCache = true) : this(context)
+        {
             if (tableMeta.IsSimpleType())
             {
                 throw Error.Exception("查询的实体类型不正确。");
             }
-            this._tableName = tableName.IsNullOrWhiteSpace() ? tableMeta.TableName : tableName;
-            _typeNames.Add(typeof(T), _tableName);
+            if (!tableName.IsNullOrWhiteSpace())
+            {
+                this.tableName = tableName;
+            }
+            this.namedType = new NamedType(this.tableMeta.Type, this.tableName);
+            this.typeVisitor.Add(this.namedType);
+            //typeNames.Add(typeof(T), _tableName);
             this._useCache = useCache;
+
+            this.InitFieldsPart();
         }
         #endregion
 
@@ -176,7 +190,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         public IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression, bool isAsc = true)
         {
-            this.order = this.order ?? new Order<T>(Context);
+            this.order = this.order ?? new Order<T>(Context, this);
             this.order.By(expression, isAsc);
             this._list = null;
             return this;
@@ -188,7 +202,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         public IQuery<T> OrderBy(params Expression<Func<T, dynamic>>[] expressions)
         {
-            this.order = this.order ?? new Order<T>(Context);
+            this.order = this.order ?? new Order<T>(Context, this);
             this.order.ByAsc(expressions);
             this._list = null;
             return this;
@@ -200,7 +214,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         public IQuery<T> OrderByDescending(params Expression<Func<T, dynamic>>[] expressions)
         {
-            this.order = this.order ?? new Order<T>(Context);
+            this.order = this.order ?? new Order<T>(Context, this);
             this.order.ByDesc(expressions);
             this._list = null;
             return this;
@@ -268,11 +282,15 @@ namespace XData.XBuilder
             {
                 throw Error.ArgumentNullException(nameof(result));
             }
-            this.selector = result;
-            var tableName = _tableName + "_";
-            this.innerTableMeta = TableMeta.From<TResult>(tableName);
-            var outFieldsSql = this.SetInnerFields(tableName);
-            return new ComplexQuery<T, TResult>(this, tableName, outFieldsSql);
+            if (typeof(T) == typeof(TResult))
+            {
+                this.selector = result;
+                this.SetInnerFields();
+                return (IQuery<TResult>)this;
+            }
+            var _tableName = this.tableName + "_";
+            //this.innerTableMeta = TableMeta.From<TResult>(tableName);
+            return new ComplexQuery<T, TResult>(this, _tableName, result/*, outFieldsSql*/);
         }
 
 
@@ -319,7 +337,7 @@ namespace XData.XBuilder
                 }
             }
             var tableName = GetTableNameOrInnerSql();
-            var columnName = new WhereExpressionVistor(selector, this, _typeNames).ToSql();
+            var columnName = SqlExpressionVistor.Visit(selector, this);
             var sql = string.Format("SELECT {5}({4}{3}) FROM {0} {1} {2}", tableName, this.WherePart, this.OrderPart, columnName, this.DistinctPart, aggregateName);
             return (TAggregate)Context.ExecuteScalar(sql, CommandType.Text, this.DbParameters);
         }
@@ -448,10 +466,10 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            this._parameterIndex = 0;
-            var tableName = GetTableNameOrInnerSql();
-            var fieldsPart = this.GetFieldsPart();
-            return string.Format("SELECT {3} {4} {5} FROM {0} {1} {2}", tableName, this.WherePart, this.OrderPart, this.DistinctPart, this.TopPart, fieldsPart);
+            this.parameterIndex = 0;
+            var _tableName = GetTableNameOrInnerSql();
+            var fieldsPart = this.InitFieldsPart();
+            return string.Format("SELECT {3} {4} {5} FROM {0} {1} {2}", _tableName, this.WherePart, this.OrderPart, this.DistinctPart, this.TopPart, fieldsPart);
         }
 
         /// <summary>
@@ -460,9 +478,10 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal virtual string ToInnerSql()
         {
-            this._parameterIndex = 0;
-            var tableName = GetTableNameOrInnerSql();
-            return string.Format("SELECT {2} {3} {4} FROM {0} {1}", tableName, this.WherePart, this.DistinctPart, this.TopPart, this._innerFieldsPart);
+            this.parameterIndex = 0;
+            var _tableName = GetTableNameOrInnerSql();
+            var fieldsPart = this.InitFieldsPart();
+            return string.Format("SELECT {2} {3} {4} FROM {0} {1}", _tableName, this.WherePart, this.DistinctPart, this.TopPart, fieldsPart);
         }
 
         #endregion
@@ -475,14 +494,14 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected virtual string GetTableNameOrInnerSql()
         {
-            return EscapeSqlIdentifier(_tableName);
+            return EscapeSqlIdentifier(tableName);
         }
 
         /// <summary>
         /// 获取查询字段部分
         /// </summary>
         /// <returns></returns>
-        protected virtual object GetFieldsPart()
+        protected virtual object InitFieldsPart()
         {
             //return "*";
             if (_fieldsPart.IsNullOrWhiteSpace())
@@ -490,7 +509,9 @@ namespace XData.XBuilder
                 var strs = new Strings();
                 foreach (var column in tableMeta.Columns)
                 {
-                    strs.Add(EscapeSqlIdentifier(column.ColumnName));
+                    var sql = EscapeSqlIdentifier(column.ColumnName);
+                    strs.Add(sql);
+                    namedType.Add(column.Member, sql);
                 }
                 _fieldsPart = strs.ToString();
             }
@@ -501,64 +522,56 @@ namespace XData.XBuilder
         /// 获取子查询字段部分
         /// </summary>
         /// <returns></returns>
-        protected virtual string SetInnerFields(string outTableName)
+        protected virtual void SetInnerFields()
         {
-            if (_innerFieldsPart.IsNullOrWhiteSpace())
+            var strs = new Strings();
+            //var outerstrs = new Strings();
+
+            var newExp = selector.Body as NewExpression;
+
+            if (selector.Body is MemberInitExpression)
             {
-                if (innerTableMeta.IsSimpleType())
+                var exp = (MemberInitExpression)selector.Body;
+                newExp = exp.NewExpression;
+                foreach (var binding in exp.Bindings)
                 {
-                    var s = new WhereExpressionVistor(this.selector, this, _typeNames).ToSql();
-                    _fieldsPart = string.Format("{0} AS Field", s);
-                    return EscapeSqlIdentifier(outTableName) + "." + EscapeSqlIdentifier("Field");
-                }
-                else
-                {
-                    var strs = new Strings();
-                    var outerstrs = new Strings();
-
-                    var newExp = selector.Body as NewExpression;
-
-                    if (selector.Body is MemberInitExpression)
-                    {
-                        var exp = (MemberInitExpression)selector.Body;
-                        newExp = exp.NewExpression;
-                        foreach (var binding in exp.Bindings)
-                        {
-                            var me = binding as MemberAssignment;
-                            var sql = new WhereExpressionVistor(me.Expression, this, _typeNames).ToSql();
-                            var field = EscapeSqlIdentifier(binding.Member.Name);
-                            var osql = EscapeSqlIdentifier(outTableName) + "." + field;
-                            strs.Add(string.Format("{0} AS {1}", sql, field));
-                            outerstrs.Add(osql);
-                        }
-                    }
-
-                    var inits = newExp.Arguments;
-                    var mems = newExp.Members;
-                    for (int i = 0; i < mems?.Count; i++)
-                    {
-                        if (inits[i] is MemberExpression)
-                        {
-                            var sql = new WhereExpressionVistor(inits[i], this, _typeNames).ToSql();
-                            var field = EscapeSqlIdentifier(mems[i].Name);
-                            var osql = EscapeSqlIdentifier(outTableName) + "." + field;
-                            strs.Add(string.Format("{0} AS {1}", sql, field));
-                            outerstrs.Add(osql);
-                        }
-                        //else if (inits[i] is NewExpression) { }
-                        else
-                        {
-                            throw Error.NotSupportedException("不支持复杂的类型初始化。");
-                        }
-                    }
-                    _innerFieldsPart = strs.ToString();
-                    return outerstrs.ToString();
+                    var me = binding as MemberAssignment;
+                    var sql = SqlExpressionVistor.Visit(me.Expression, this);
+                    var field = EscapeSqlIdentifier(binding.Member.Name);
+                    //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
+                    strs.Add(string.Format("{0} AS {1}", sql, field));
+                    namedType.Add(binding.Member, sql);
+                    //outerstrs.Add(osql);
                 }
             }
-            _innerFieldsPart = "*";
-            return "*";
+
+            var inits = newExp.Arguments;
+            var mems = newExp.Members;
+            for (int i = 0; i < mems?.Count; i++)
+            {
+                if (inits[i] is MemberExpression)
+                {
+                    var sql = SqlExpressionVistor.Visit(inits[i], this);
+                    var field = EscapeSqlIdentifier(mems[i].Name);
+                    //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
+                    strs.Add(string.Format("{0} AS {1}", sql, field));
+                    namedType.Add(mems[i], sql);
+                    //outerstrs.Add(osql);
+                }
+                //else if (inits[i] is NewExpression) { }
+                else
+                {
+                    throw Error.NotSupportedException("不支持复杂的类型初始化。");
+                }
+            }
+            _fieldsPart = strs.ToString();
         }
 
         #endregion
+
+        //internal override string GetFieldSql(string field)
+        //{
+        //    return fieldSqls[field];
+        //}
     }
 }

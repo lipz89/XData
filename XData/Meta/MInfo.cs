@@ -5,7 +5,7 @@ using XData.Common;
 
 namespace XData.Meta
 {
-    class MInfo
+    internal class MInfo
     {
         public MInfo(MemberInfo member, Type caller)
         {

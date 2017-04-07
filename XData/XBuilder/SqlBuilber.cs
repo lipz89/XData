@@ -5,6 +5,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
+using XData.Common;
+using XData.Core;
+using XData.Extentions;
 using XData.Meta;
 
 namespace XData.XBuilder
@@ -16,8 +19,11 @@ namespace XData.XBuilder
     {
         #region Fields
         internal readonly List<object> _parameters = new List<object>();
-        internal ParameterExpression _parameter;
-        internal int _parameterIndex = 0;
+        internal int parameterIndex = 0;
+        internal TableMeta tableMeta;
+        internal string tableName;
+        internal TypeVisitor typeVisitor = new TypeVisitor();
+        internal NamedType namedType;
         #endregion
 
         #region Properties
@@ -73,9 +79,9 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetParameterIndex()
         {
-            var index = _parameterIndex;
+            var index = parameterIndex;
             string s = string.Format("{0}{1}", Context.DatabaseType.GetParameterPrefix(Context.ConnectionString), index);
-            _parameterIndex++;
+            parameterIndex++;
             return s;
         }
 
@@ -150,17 +156,10 @@ namespace XData.XBuilder
         /// </summary>
         /// <returns></returns>
         public abstract string ToSql();
-    }
 
-    /// <summary>
-    /// 可执行的Sql接口
-    /// </summary>
-    public interface IExecutable
-    {
-        /// <summary>
-        /// 执行Sql命令
-        /// </summary>
-        /// <returns></returns>
-        int Execute();
+        //internal virtual string GetFieldSql(string field)
+        //{
+        //    throw Error.NotSupportedException("");
+        //}
     }
 }

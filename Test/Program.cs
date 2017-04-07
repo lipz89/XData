@@ -14,6 +14,7 @@ using NUnit.Framework;
 
 using Winning.SPD.SCM.Domain;
 
+using XData;
 using XData.Extentions;
 
 namespace Test
@@ -38,11 +39,16 @@ namespace Test
 
         public const string EntityString = @"Provider=System.Data.SqlClient;Metadata=res://*/;Provider Connection String= 'Data Source=.;Initial Catalog = DMSP;user id=sa;password=111111; Integrated Security = True; Connection Timeout = 60'";
         public const string SqlProvider = "System.Data.SqlClient";
+
+        public static XContext NewContext()
+        {
+            return new XContext(Program.SqlConnectionString, Program.SqlProvider);
+        }
     }
 
     class TestModel
     {
-        public TestModel(int id,int v)
+        public TestModel(int id, int v)
         {
             ID = id;
         }

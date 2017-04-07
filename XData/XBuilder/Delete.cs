@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 
 using XData.Common;
+using XData.Core;
 using XData.Meta;
 
 namespace XData.XBuilder
@@ -17,6 +18,7 @@ namespace XData.XBuilder
         #region Fields
         private Where<T> where;
         private readonly bool _hasWhere;
+        private readonly ColumnMeta keyMeta;
         #endregion
 
         #region Properties
@@ -35,6 +37,7 @@ namespace XData.XBuilder
                 return ps.AsReadOnly();
             }
         }
+
         #endregion
 
         #region Constuctors
@@ -44,14 +47,21 @@ namespace XData.XBuilder
         /// <param name="context"></param>
         internal Delete(XContext context) : base(context)
         {
+            this.tableMeta = TableMeta.From<T>();
+            this.keyMeta = tableMeta.Key;
+            this.tableName = this.tableMeta.TableName;
+            this.namedType = new NamedType(this.tableMeta.Type, this.tableName);
+            this.typeVisitor.Add(this.namedType);
         }
 
-        internal Delete(XContext context, T entity, Expression<Func<T, object>> primaryKey = null) : base(context)
+        internal Delete(XContext context, T entity, Expression<Func<T, object>> primaryKey = null)
+            : this(context)
         {
             if (entity == null)
+            {
                 throw Error.ArgumentNullException(nameof(entity));
+            }
 
-            var keyMeta = MetaConfig.GetKeyMeta<T>();
             var exp = keyMeta?.Expression as LambdaExpression ?? primaryKey;
             if (exp != null)
             {
@@ -63,7 +73,7 @@ namespace XData.XBuilder
                 }
                 var newExp = Expression.Equal(mem, Expression.Constant(val));
                 var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
-                this.where = new Where<T>(Context);
+                this.where = new Where<T>(Context, this);
                 this.where.Add(lambda);
                 _hasWhere = true;
             }
@@ -87,7 +97,7 @@ namespace XData.XBuilder
             {
                 throw Error.Exception("已经指定了主键列为Where条件。");
             }
-            this.where = this.where ?? new Where<T>(Context);
+            this.where = this.where ?? new Where<T>(Context, this);
             this.where.Add(expression);
             return this;
         }
@@ -107,7 +117,7 @@ namespace XData.XBuilder
             {
                 throw Error.Exception("已经指定了主键列为Where条件。");
             }
-            this.where = this.where ?? new Where<T>(Context);
+            this.where = this.where ?? new Where<T>(Context, this);
             this.where.AddOr(expression);
             return this;
         }
@@ -145,12 +155,11 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            this._parameterIndex = 0;
-            var tableName = GetTableName<T>();
+            this.parameterIndex = 0;
             var wherePart = string.Empty;
             if (this.where != null)
             {
-                this.where._parameterIndex = this._parameterIndex;
+                this.where.parameterIndex = this.parameterIndex;
                 wherePart = this.where.ToSql();
             }
             return string.Format("DELETE FROM {0} {1}", tableName, wherePart);

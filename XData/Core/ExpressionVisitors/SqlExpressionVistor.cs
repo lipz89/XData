@@ -7,6 +7,7 @@ using System.Reflection;
 
 using XData.Common;
 using XData.Extentions;
+using XData.Meta;
 using XData.XBuilder;
 
 namespace XData.Core.ExpressionVisitors
@@ -14,24 +15,24 @@ namespace XData.Core.ExpressionVisitors
     /// <summary>
     /// 查询表达式访问器
     /// </summary>
-    internal class WhereExpressionVistor : ExpressionVisitor
+    internal class SqlExpressionVistor : ExpressionVisitor
     {
         #region Fields
-        private readonly SqlBuilber sqlBuilber;
+        private readonly SqlBuilber privoder;
         private readonly Expression expression;
         private readonly Stack<ExpressionType> nodeTypes = new Stack<ExpressionType>();
         private readonly Stack<string> methodTypes = new Stack<string>();
+        private readonly TypeVisitor typeVisitor;
         private string sql = string.Empty;
-        private Dictionary<Type, string> types;
 
         #endregion
 
         #region Constuctors
-        public WhereExpressionVistor(Expression expression, SqlBuilber sqlBuilber, Dictionary<Type, string> types)
+        private SqlExpressionVistor(Expression expression, SqlBuilber privoder)
         {
             this.expression = expression;
-            this.sqlBuilber = sqlBuilber;
-            this.types = types;
+            this.privoder = privoder;
+            this.typeVisitor = privoder.typeVisitor;
             nodeTypes.Push(ExpressionType.Block);
         }
 
@@ -156,8 +157,8 @@ namespace XData.Core.ExpressionVisitors
             }
             else
             {
-                sql += sqlBuilber.GetParameterIndex();
-                sqlBuilber._parameters.Add(value);
+                sql += privoder.GetParameterIndex();
+                privoder._parameters.Add(value);
             }
             nodeTypes.Pop();
             return node;
@@ -165,47 +166,33 @@ namespace XData.Core.ExpressionVisitors
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            Type t;
+            var lastNode = nodeTypes.Peek();
+            var member = node.Member;
             object value;
             var hasValue = TryGetExpressionValue(node, out value);
-            var member = node.Member;
-            if (member.ReflectedType != null && member.ReflectedType.IsAssignableFromOneOf(types.Keys, out t))
+            var namedType = typeVisitor.Get(node.Expression.Type);
+            if (namedType != null)
             {
-                var lastNode = nodeTypes.Peek();
+                if (lastNode == ExpressionType.MemberAccess)
+                {
+                    throw Error.NotSupportedException("不支持嵌套属性。");
+                }
                 nodeTypes.Push(node.NodeType);
                 if (lastNode == ExpressionType.Call && methodTypes.Any())
                 {
-                    var fieldName = sqlBuilber.EscapeSqlIdentifier(types[t]) + "." + sqlBuilber.GetColumnName(member, node.Expression.Type);
+                    var fieldName = namedType.GetSql(member, privoder);
                     ConvertMethod(hasValue, value, fieldName);
                 }
                 else
                 {
                     if (hasValue)
                     {
-                        sql += sqlBuilber.GetParameterIndex();
-                        sqlBuilber._parameters.Add(value);
+                        sql += privoder.GetParameterIndex();
+                        privoder._parameters.Add(value);
                     }
                     else
                     {
-                        base.VisitMember(node);
-                        if (node.Expression is ParameterExpression)
-                        {
-                            Type pt;
-                            if (node.Expression.Type.IsAssignableFromOneOf(types.Keys, out pt))
-                            {
-                                sql += sqlBuilber.EscapeSqlIdentifier(types[t]) + ".";
-                            }
-                            else
-                            {
-                                throw Error.NotSupportedException("不支持的参数类型。");
-                                //sql += sqlBuilber.GetTableName(node.Expression.Type) + ".";
-                            }
-                        }
-                        sql += sqlBuilber.GetColumnName(member, node.Expression.Type);
-                        if (lastNode == ExpressionType.MemberAccess)
-                        {
-                            throw Error.NotSupportedException("不支持嵌套属性。");
-                        }
+                        sql += namedType.GetSql(member, privoder);
 
                         if (node.Type.NonNullableType() == typeof(bool)
                             && (lastNode == ExpressionType.AndAlso
@@ -214,8 +201,8 @@ namespace XData.Core.ExpressionVisitors
                                 || lastNode == ExpressionType.Block))
                         {
                             sql += " = ";
-                            sql += sqlBuilber.GetParameterIndex();
-                            sqlBuilber._parameters.Add(true);
+                            sql += privoder.GetParameterIndex();
+                            privoder._parameters.Add(true);
                         }
                     }
                 }
@@ -226,8 +213,8 @@ namespace XData.Core.ExpressionVisitors
                 sql += "LEN(";
                 if (hasValue)
                 {
-                    sql += sqlBuilber.GetParameterIndex();
-                    sqlBuilber._parameters.Add(value);
+                    sql += privoder.GetParameterIndex();
+                    privoder._parameters.Add(value);
                 }
                 else
                 {
@@ -250,8 +237,8 @@ namespace XData.Core.ExpressionVisitors
             {
                 if (hasValue)
                 {
-                    sql += sqlBuilber.GetParameterIndex();
-                    sqlBuilber._parameters.Add(value);
+                    sql += privoder.GetParameterIndex();
+                    privoder._parameters.Add(value);
                 }
                 else
                 {
@@ -381,6 +368,20 @@ namespace XData.Core.ExpressionVisitors
             return node;
         }
 
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            if (DbTypes.IsSimpleType(node.Type))
+            {
+                var namedType = typeVisitor.Get(node.Type);
+                if (namedType != null)
+                {
+                    sql += namedType.GetSql(null);
+                    return node;
+                }
+            }
+            return base.VisitParameter(node);
+        }
+
         #endregion
 
         #region Private Methods
@@ -394,9 +395,9 @@ namespace XData.Core.ExpressionVisitors
                     if (hasValue)
                     {
                         sql += "'%'+";
-                        sql += sqlBuilber.GetParameterIndex();
+                        sql += privoder.GetParameterIndex();
                         sql += "+'%'";
-                        sqlBuilber._parameters.Add(value);
+                        privoder._parameters.Add(value);
                     }
                     else
                     {
@@ -408,9 +409,9 @@ namespace XData.Core.ExpressionVisitors
                 case Constans.StringStartsWith:
                     if (hasValue)
                     {
-                        sql += sqlBuilber.GetParameterIndex();
+                        sql += privoder.GetParameterIndex();
                         sql += "+'%'";
-                        sqlBuilber._parameters.Add(value);
+                        privoder._parameters.Add(value);
                     }
                     else
                     {
@@ -422,8 +423,8 @@ namespace XData.Core.ExpressionVisitors
                     if (hasValue)
                     {
                         sql += "'%'+";
-                        sql += sqlBuilber.GetParameterIndex();
-                        sqlBuilber._parameters.Add(value);
+                        sql += privoder.GetParameterIndex();
+                        privoder._parameters.Add(value);
                     }
                     else
                     {
@@ -434,8 +435,8 @@ namespace XData.Core.ExpressionVisitors
                 case Constans.StringSqlLike:
                     if (hasValue)
                     {
-                        sql += sqlBuilber.GetParameterIndex();
-                        sqlBuilber._parameters.Add(value);
+                        sql += privoder.GetParameterIndex();
+                        privoder._parameters.Add(value);
                     }
                     else
                     {
@@ -445,8 +446,8 @@ namespace XData.Core.ExpressionVisitors
                 case Constans.ObjectEquals:
                     if (hasValue)
                     {
-                        sql += sqlBuilber.GetParameterIndex();
-                        sqlBuilber._parameters.Add(value);
+                        sql += privoder.GetParameterIndex();
+                        privoder._parameters.Add(value);
                     }
                     else
                     {
@@ -499,8 +500,8 @@ namespace XData.Core.ExpressionVisitors
             sql += "(";
             foreach (var v in enumer)
             {
-                sql += sqlBuilber.GetParameterIndex() + ",";
-                sqlBuilber._parameters.Add(v);
+                sql += privoder.GetParameterIndex() + ",";
+                privoder._parameters.Add(v);
             }
             sql = sql.TrimEnd(',');
             sql += ")";
@@ -518,5 +519,11 @@ namespace XData.Core.ExpressionVisitors
             return sql;
         }
         #endregion
+
+        public static string Visit(Expression expression, SqlBuilber privoder)
+        {
+            var visitor = new SqlExpressionVistor(expression, privoder);
+            return visitor.ToSql();
+        }
     }
 }

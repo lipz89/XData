@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 
 using XData.Common;
+using XData.Core;
 using XData.Extentions;
 using XData.Meta;
 
@@ -18,31 +19,36 @@ namespace XData.XBuilder
         #region Fields
         private readonly Strings fieldString = new Strings();
         private readonly Strings valueString = new Strings();
+        private readonly ColumnMeta keyMeta;
         #endregion
 
         #region Constuctors
+
+        private Insert(XContext context) : base(context)
+        {
+            this.tableMeta = TableMeta.From<T>();
+            this.keyMeta = tableMeta.Key;
+            this.tableName = this.tableMeta.TableName;
+            this.namedType = new NamedType(this.tableMeta.Type, this.tableName);
+            this.typeVisitor.Add(this.namedType);
+        }
 
         /// <summary>
         /// 根据指定的实体构造一个插入命令
         /// </summary>
         /// <param name="context"></param>
         /// <param name="entity"></param>
-        internal Insert(XContext context, T entity) : base(context)
+        internal Insert(XContext context, T entity)
+            : this(context)
         {
             if (entity == null)
             {
                 throw Error.ArgumentNullException(nameof(entity));
             }
 
-            var tableMeta = TableMeta.From<T>();
-            var keyMeta = tableMeta.Key;
             var columns = tableMeta.Columns.Where(x => x.Member != keyMeta?.Member).ToList();
             foreach (var column in columns)
             {
-                if (column.Member == tableMeta.Key.Member)
-                {
-                    continue;
-                }
                 fieldString.Add(EscapeSqlIdentifier(column.ColumnName));
                 valueString.Add(GetParameterIndex());
                 this._parameters.Add(column.GetValue(entity));
@@ -56,7 +62,8 @@ namespace XData.XBuilder
         /// <param name="entity"></param>
         /// <param name="include">包含或者排除，true包含表示仅插入指定的字段，false排除表示不插入指定的字段</param>
         /// <param name="fields"></param>
-        internal Insert(XContext context, T entity, bool include = false, params Expression<Func<T, object>>[] fields) : base(context)
+        internal Insert(XContext context, T entity, bool include = false, params Expression<Func<T, object>>[] fields)
+            : this(context)
         {
             if (entity == null)
             {
@@ -74,8 +81,7 @@ namespace XData.XBuilder
             {
                 throw Error.ArgumentException("指定的表达式中包含不是成员访问类型的元素。", nameof(fields));
             }
-            var tableMeta = TableMeta.From<T>();
-            var keyMeta = tableMeta.Key;
+
             var exceptFields = fields.Select(x => x.GetPropertyName());
             var columns = tableMeta.Columns.Where(x => x.Member != keyMeta?.Member && exceptFields.Contains(x.Member.Name) == include).ToList();
             //if (columns.IsNullOrEmpty())
@@ -94,15 +100,14 @@ namespace XData.XBuilder
         /// </summary>
         /// <param name="context"></param>
         /// <param name="fieldValues"></param>
-        internal Insert(XContext context, IDictionary<string, object> fieldValues) : base(context)
+        internal Insert(XContext context, IDictionary<string, object> fieldValues)
+            : this(context)
         {
             if (fieldValues.IsNullOrEmpty())
             {
                 throw Error.ArgumentNullException(nameof(fieldValues));
             }
 
-            var tableMeta = TableMeta.From<T>();
-            var keyMeta = tableMeta.Key;
             var columns = tableMeta.Columns.Where(x => x.Member != keyMeta?.Member && fieldValues.Keys.Contains(x.Member.Name)).ToList();
             //if (columns.IsNullOrEmpty())
             //{
@@ -135,8 +140,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            this._parameterIndex = 0;
-            var tableName = GetTableName<T>();
+            this.parameterIndex = 0;
             return string.Format("INSERT INTO {0} ({1}) VALUES ({2})", tableName, fieldString, valueString);
         }
         #endregion

@@ -17,11 +17,13 @@ namespace XData.XBuilder
         #region Fields
         private readonly List<string> sorts = new List<string>();
         private readonly Strings orders = new Strings();
+        private readonly SqlBuilber privoder;
         #endregion
 
         #region Constuctors
-        internal Order(XContext context) : base(context)
+        internal Order(XContext context, SqlBuilber privoder) : base(context)
         {
+            this.privoder = privoder;
         }
         #endregion
 
@@ -42,10 +44,11 @@ namespace XData.XBuilder
             var member = expression.GetMember();
             if (member != null)
             {
-                var columnName = GetTableName<T>() + "." + GetColumnName(expression);
-                if (!sorts.Contains(columnName))
+                var field = expression.GetPropertyName();
+                var columnName = privoder.namedType.GetSql(member, privoder);
+                if (!sorts.Contains(field))
                 {
-                    sorts.Add(columnName);
+                    sorts.Add(field);
                     orders.Add(string.Format("{0} {1}", columnName, isAsc ? "ASC" : "DESC"));
                 }
                 else

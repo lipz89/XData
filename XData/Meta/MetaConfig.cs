@@ -25,11 +25,14 @@ namespace XData.Meta
         /// <param name="tableName"></param>
         public static void MetaTableName<T>(string tableName)
         {
+            MetaTableName(typeof(T), tableName);
+        }
+        internal static void MetaTableName(Type type, string tableName)
+        {
             if (tableName.IsNullOrWhiteSpace())
             {
                 throw Error.ArgumentNullException(nameof(tableName));
             }
-            var type = typeof(T);
             if (TableNames.ContainsKey(type))
             {
                 TableNames[type] = tableName;

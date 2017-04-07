@@ -58,10 +58,11 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestDelete.cs" />
-    <Compile Include="TestInsert.cs" />
+    <Compile Include="TestInsertAndDelete.cs" />
+    <Compile Include="TestJoin.cs" />
     <Compile Include="TestQuery.cs" />
     <Compile Include="TestSelect.cs" />
+    <Compile Include="TestUpdate.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

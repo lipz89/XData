@@ -14,5 +14,17 @@ namespace XData.Common
             }
             return this[key];
         }
+
+        public void AddOrReplace(TKey key, TValue value)
+        {
+            if (this.ContainsKey(key))
+            {
+                this[key] = value;
+            }
+            else
+            {
+                this.Add(key, value);
+            }
+        }
     }
 }

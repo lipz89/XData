@@ -49,6 +49,8 @@
     <Compile Include="Core\DatabaseTypes\PostgreSQLDatabaseType.cs" />
     <Compile Include="Core\DatabaseTypes\SQLiteDatabaseType.cs" />
     <Compile Include="Core\DatabaseTypes\SqlServerCEDatabaseType.cs" />
+    <Compile Include="Core\Mappers.cs" />
+    <Compile Include="Core\TypeVisitor.cs" />
     <Compile Include="Extentions\EnumerableExtensions.cs" />
     <Compile Include="Extentions\ExpressionExtensions.cs" />
     <Compile Include="Extentions\Extentions.cs" />
@@ -73,6 +75,7 @@
     <Compile Include="Core\ExpressionVisitors\ParameterReplaceVisitor.cs" />
     <Compile Include="XBuilder\ComplexQuery.cs" />
     <Compile Include="XBuilder\IQuery.cs" />
+    <Compile Include="XBuilder\Join.cs" />
     <Compile Include="XBuilder\SqlBuilber.cs" />
     <Compile Include="Common\Constans.cs" />
     <Compile Include="XBuilder\Delete.cs" />
@@ -80,7 +83,7 @@
     <Compile Include="XBuilder\Order.cs" />
     <Compile Include="XBuilder\Update.cs" />
     <Compile Include="XBuilder\Where.cs" />
-    <Compile Include="Core\ExpressionVisitors\WhereExpressionVistor.cs" />
+    <Compile Include="Core\ExpressionVisitors\SqlExpressionVistor.cs" />
     <Compile Include="XContext.cs" />
     <Compile Include="Common\LogLevel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

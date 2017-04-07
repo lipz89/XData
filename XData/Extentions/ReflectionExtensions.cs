@@ -210,7 +210,7 @@ namespace XData.Extentions
             }
             var instance = Expression.Parameter(typeof(T));
             var member = Expression.MakeMemberAccess(instance, memberInfo);
-            return Expression.Lambda<Func<T, object>>(member, instance);
+            return Expression.Lambda<Func<T, object>>(Expression.Convert(member,typeof(object)), instance);
         }
 
         #region Anonymous

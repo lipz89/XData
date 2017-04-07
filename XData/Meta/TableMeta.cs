@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq.Expressions;
 using System.Reflection;
 
 using XData.Common;
 using XData.Extentions;
-using XData.XBuilder;
 
 namespace XData.Meta
 {
@@ -43,16 +41,21 @@ namespace XData.Meta
 
         public static TableMeta From<T>(string tableName = null)
         {
-            if (Inner<T>.Meta == null)
+            return From(typeof(T), tableName);
+        }
+
+        public static TableMeta From(Type type, string tableName = null)
+        {
+            return cache.Get(type, () =>
             {
                 if (!tableName.IsNullOrWhiteSpace())
                 {
-                    MetaConfig.MetaTableName<T>(tableName);
+                    MetaConfig.MetaTableName(type, tableName);
                 }
-                var meta = new TableMeta(typeof(T));
+                var meta = new TableMeta(type);
                 if (!meta.IsSimpleType())
                 {
-                    meta.Key = MetaConfig.GetKeyMeta<T>();
+                    meta.Key = MetaConfig.GetKeyMeta(type);
 
                     var columns = new List<ColumnMeta>();
 
@@ -82,14 +85,10 @@ namespace XData.Meta
                     }
                     meta.Columns = columns.AsReadOnly();
                 }
-                Inner<T>.Meta = meta;
-            }
-            return Inner<T>.Meta;
+                return meta;
+            });
         }
 
-        private class Inner<T>
-        {
-            internal static TableMeta Meta { get; set; }
-        }
+        private static readonly Cache<Type, TableMeta> cache = new Cache<Type, TableMeta>();
     }
 }

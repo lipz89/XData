@@ -138,6 +138,65 @@ namespace XData
 
         #endregion
 
+        #region JoinBuilder
+
+        /// <summary>
+        /// 内连接查询
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <param name="on"></param>
+        /// <returns></returns>
+        public Join<T1, T2> InnerJoin<T1, T2>(Expression<Func<T1, T2, bool>> on)
+        {
+            return new Join<T1, T2>(this, JoinType.Inner, on);
+        }
+        /// <summary>
+        /// 左外连接查询
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <param name="on"></param>
+        /// <returns></returns>
+        public Join<T1, T2> LeftJoin<T1, T2>(Expression<Func<T1, T2, bool>> on)
+        {
+            return new Join<T1, T2>(this, JoinType.Left, on);
+        }
+        /// <summary>
+        /// 右外连接查询
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <param name="on"></param>
+        /// <returns></returns>
+        public Join<T1, T2> RightJoin<T1, T2>(Expression<Func<T1, T2, bool>> on)
+        {
+            return new Join<T1, T2>(this, JoinType.Right, on);
+        }
+        /// <summary>
+        /// 外连接查询
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <param name="on"></param>
+        /// <returns></returns>
+        public Join<T1, T2> FullJoin<T1, T2>(Expression<Func<T1, T2, bool>> on)
+        {
+            return new Join<T1, T2>(this, JoinType.Full, on);
+        }
+        /// <summary>
+        /// 交叉查询
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <returns></returns>
+        public Join<T1, T2> CrossJoin<T1, T2>()
+        {
+            return new Join<T1, T2>(this, JoinType.Cross);
+        }
+
+        #endregion
+
         #region UpdateBuilder
 
         /// <summary>

@@ -22,15 +22,19 @@ namespace Test
         public void Test()
         {
             var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
-            var qu = db.Query<Menu>().Where(x => x.Action != null && !x.IsDeleted);
-            var sql = qu.ToSql();
-            //Console.WriteLine(sql);
-
-            var q2 = qu.Select(x => new { x.Name, x.Code }).Where(x => x.Code.Length > 7).Select(x => new { Test = x.Name + x.Code, }).OrderBy(x => x.Test);
-            var sql2 = q2.ToSql();
+            //var qu = db.Query<Menu>().Where(x => x.Action != null && !x.IsDeleted);
+            //var sql = qu.ToSql();
+            ////Console.WriteLine(sql);
+            //var q1 = qu.Select(x => new { x.Name, x.Code }).Where(x => x.Code.Length > 7);
+            //var sql1 = q1.ToSql();
+            //var q2 = q1.Select(x => new { Test = x.Name + x.Code, }).OrderBy(x => x.Test);
+            //var sql2 = q2.ToSql();
             //Console.WriteLine(sql2);
 
-            var result = q2.ToList();
+            var q3 = db.Query<Menu>().Select(x => x.Controller).Where(x => x.Contains("A"));
+            var sql3 = q3.ToSql();
+
+            var result = q3.ToList();
             Console.WriteLine(JsonConvert.SerializeObject(result));
         }
 
@@ -42,7 +46,7 @@ namespace Test
             var sql = qu.ToSql();
             //Console.WriteLine(sql);
 
-            var q2 = qu.Select(x => new SubMenu(x.Name) { Name = x.Controller, Code = x.Code }).Where(x => x.Code.Length > 18);
+            var q2 = qu.Select(x => new  { Name = x.Controller, Code = x.Code }).Where(x => x.Code.Length > 1);
             var sql2 = q2.ToSql();
             //Console.WriteLine(sql2);
 
@@ -54,11 +58,11 @@ namespace Test
         public void Test3()
         {
             var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
-            var qu = db.Query<Menu>().Where(x => x.Action != null && !x.IsDeleted);
+            var qu = db.Query<Menu>();
             var sql = qu.ToSql();
             //Console.WriteLine(sql);
 
-            var q2 = qu.Select(x => new { N = x.Name, x.Code, Inner = new { x.Controller } }).Where(x => x.Code.Length > 7);
+            var q2 = qu.Select(x => new { N = x.Name, x.Code, Inner = new { x.Controller, x.Action } }).Where(x => x.Code.Length > 7);
             var sql2 = q2.ToSql();
             //Console.WriteLine(sql2);
 

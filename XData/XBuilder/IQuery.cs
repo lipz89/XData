@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 
 using XData.Common;
+using XData.Meta;
 
 namespace XData.XBuilder
 {
@@ -16,11 +17,11 @@ namespace XData.XBuilder
         /// 上下文对象
         /// </summary>
         XContext Context { get; }
+
         /// <summary>
         /// 参数列表
         /// </summary>
         IReadOnlyList<object> Parameters { get; }
-
         /// <summary>
         /// 查询条件
         /// </summary>
@@ -150,11 +151,22 @@ namespace XData.XBuilder
         /// <param name="page"></param>
         /// <returns></returns>
         Page<T> ToPage(Page page);
-
         /// <summary>
         /// 转换成Sql语句
         /// </summary>
         /// <returns></returns>
         string ToSql();
+    }
+
+    /// <summary>
+    /// 可执行的Sql接口
+    /// </summary>
+    public interface IExecutable
+    {
+        /// <summary>
+        /// 执行Sql命令
+        /// </summary>
+        /// <returns></returns>
+        int Execute();
     }
 }
