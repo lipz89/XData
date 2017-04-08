@@ -15,7 +15,7 @@ namespace Test
     {
         public TestSelect()
         {
-            MetaConfig.IgnoreColumn<Menu>(x => x.RowVersion);
+            MapperConfig.IgnoreColumn<Menu>(x => x.RowVersion);
         }
 
         [Test]

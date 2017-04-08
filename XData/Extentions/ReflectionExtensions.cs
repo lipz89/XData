@@ -210,7 +210,7 @@ namespace XData.Extentions
             }
             var instance = Expression.Parameter(typeof(T));
             var member = Expression.MakeMemberAccess(instance, memberInfo);
-            return Expression.Lambda<Func<T, object>>(Expression.Convert(member,typeof(object)), instance);
+            return Expression.Lambda<Func<T, object>>(Expression.Convert(member, typeof(object)), instance);
         }
 
         #region Anonymous
@@ -246,6 +246,13 @@ namespace XData.Extentions
         public static ConstructorInfo GetDefaultCtor(this Type type)
         {
             return type.GetConstructor(Type.EmptyTypes);
+        }
+
+        public static object GetDefaultValue(this Type type)
+        {
+            var exp = Expression.Default(type);
+            var lambda = Expression.Lambda(exp);
+            return lambda.Compile().DynamicInvoke();
         }
     }
 }

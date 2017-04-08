@@ -128,12 +128,55 @@ namespace XData
         /// 构造一个查询命令
         /// </summary>
         /// <typeparam name="T">查询结果实体类型</typeparam>
-        /// <param name="tableName">表名称，如果表名和类型<typeparamref name="T"/>名称一致或者在<see cref="MetaConfig"/>中配置了表名，本参数可以省略</param>
+        /// <param name="tableName">表名称，如果表名和类型<typeparamref name="T"/>名称一致或者在<see cref="MapperConfig"/>中配置了表名，本参数可以省略</param>
         /// <param name="useCache">true表示使用已缓存结果，false表示每次获取结果都从数据库读取</param>
         /// <returns></returns>
         public IQuery<T> Query<T>(string tableName = null, bool useCache = true)
         {
             return new Query<T>(this, tableName, useCache);
+        }
+
+        /// <summary>
+        /// 按查询条件获取第一条数据，如果没有返回空
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        public T GetFirstOrDefault<T>(Expression<Func<T, bool>> condition)
+        {
+            var query = this.Query<T>().Where(condition).Top(1);
+            return query.ToList().FirstOrDefault();
+        }
+
+        /// <summary>
+        /// 根据主键值获取实体对象
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key"></param>
+        /// <param name="primaryKey"></param>
+        /// <returns></returns>
+        public T GetByKey<T>(object key, Expression<Func<T, object>> primaryKey = null)
+        {
+            if (key == null)
+            {
+                return default(T);
+            }
+            var keyMeta = MapperConfig.GetKeyMeta<T>();
+            var exp = keyMeta?.Expression as LambdaExpression;
+            if (exp == null && primaryKey != null)
+            {
+                MapperConfig.HasKey(primaryKey);
+                exp = primaryKey;
+            }
+            if (exp == null)
+            {
+                throw Error.Exception("没有为模型" + typeof(T).FullName + "指定主键。");
+            }
+            var keyExp = Expression.Constant(key);
+            var mem = exp.Body.ChangeType(keyExp.Type);
+            var condition = Expression.Equal(keyExp, mem);
+            var lambda = Expression.Lambda<Func<T, bool>>(condition, exp.Parameters);
+            return GetFirstOrDefault(lambda);
         }
 
         #endregion

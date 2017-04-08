@@ -49,7 +49,7 @@
     <Compile Include="Core\DatabaseTypes\PostgreSQLDatabaseType.cs" />
     <Compile Include="Core\DatabaseTypes\SQLiteDatabaseType.cs" />
     <Compile Include="Core\DatabaseTypes\SqlServerCEDatabaseType.cs" />
-    <Compile Include="Core\Mappers.cs" />
+    <Compile Include="Core\NamedType.cs" />
     <Compile Include="Core\TypeVisitor.cs" />
     <Compile Include="Extentions\EnumerableExtensions.cs" />
     <Compile Include="Extentions\ExpressionExtensions.cs" />
@@ -64,12 +64,12 @@
     <Compile Include="Core\DatabaseTypes\SqlServerDatabaseType.cs" />
     <Compile Include="Core\Reader.cs" />
     <Compile Include="Common\Singleton.cs" />
-    <Compile Include="Common\CommonMapper.cs" />
+    <Compile Include="Common\Mappers.cs" />
     <Compile Include="Extentions\StringExtensions.cs" />
     <Compile Include="Extentions\ReflectionExtensions.cs" />
     <Compile Include="Meta\ColumnMeta.cs" />
     <Compile Include="Meta\DbTypes.cs" />
-    <Compile Include="Meta\MetaConfig.cs" />
+    <Compile Include="Meta\MapperConfig.cs" />
     <Compile Include="Meta\MInfo.cs" />
     <Compile Include="Meta\TableMeta.cs" />
     <Compile Include="Core\ExpressionVisitors\ParameterReplaceVisitor.cs" />

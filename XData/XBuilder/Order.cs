@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 
 using XData.Common;
-using XData.Extentions;
+using XData.Core.ExpressionVisitors;
 
 namespace XData.XBuilder
 {
@@ -15,9 +15,8 @@ namespace XData.XBuilder
     internal sealed class Order<T> : SqlBuilber
     {
         #region Fields
-        private readonly List<string> sorts = new List<string>();
-        private readonly Strings orders = new Strings();
         private readonly SqlBuilber privoder;
+        private readonly Dictionary<Expression, bool> sorts = new Dictionary<Expression, bool>();
         #endregion
 
         #region Constuctors
@@ -41,21 +40,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(expression));
             }
 
-            var member = expression.GetMember();
-            if (member != null)
-            {
-                var field = expression.GetPropertyName();
-                var columnName = privoder.namedType.GetSql(member, privoder);
-                if (!sorts.Contains(field))
-                {
-                    sorts.Add(field);
-                    orders.Add(string.Format("{0} {1}", columnName, isAsc ? "ASC" : "DESC"));
-                }
-                else
-                {
-                    throw Error.ArgumentException("排序字段已经存在。", nameof(expression));
-                }
-            }
+            sorts.Add(expression, isAsc);
         }
 
         /// <summary>
@@ -89,7 +74,24 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            if (sorts.Any())
+            var orders = new Strings();
+            var columns = new List<string>();
+            foreach (var pair in sorts)
+            {
+                var exp = pair.Key;
+                var sql = SqlExpressionVistor.Visit(exp, privoder);
+                if (!columns.Contains(exp.ToString()))
+                {
+                    var sc = pair.Value ? "ASC" : "DESC";
+                    columns.Add(exp.ToString());
+                    orders.Add(string.Format("{0} {1}", sql, sc));
+                }
+                else
+                {
+                    throw Error.Exception("排序依据列表中的依据不能重复：" + sql);
+                }
+            }
+            if (columns.Any())
             {
                 return " ORDER BY " + orders;
             }

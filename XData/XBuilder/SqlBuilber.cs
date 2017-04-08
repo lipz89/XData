@@ -79,7 +79,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetParameterIndex()
         {
-            var index = parameterIndex;
+            var index = this.parameterIndex;
             string s = string.Format("{0}{1}", Context.DatabaseType.GetParameterPrefix(Context.ConnectionString), index);
             parameterIndex++;
             return s;
@@ -93,7 +93,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetTableName<T>()
         {
-            return Context.DatabaseType.EscapeTableName(MetaConfig.GetTableName<T>());
+            return Context.DatabaseType.EscapeTableName(MapperConfig.GetTableName<T>());
         }
         /// <summary>
         /// 返回转码后的表名
@@ -103,7 +103,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetTableName(Type type)
         {
-            return Context.DatabaseType.EscapeTableName(MetaConfig.GetTableName(type));
+            return Context.DatabaseType.EscapeTableName(MapperConfig.GetTableName(type));
         }
         /// <summary>
         /// 返回转码后的表名
@@ -115,7 +115,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetColumnName<T, TProperty>(Expression<Func<T, TProperty>> property)
         {
-            return EscapeSqlIdentifier(MetaConfig.GetColumnName<T, TProperty>(property));
+            return EscapeSqlIdentifier(MapperConfig.GetColumnName<T, TProperty>(property));
         }
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetColumnName(MemberInfo property, Type type)
         {
-            return EscapeSqlIdentifier(MetaConfig.GetColumnName(property, type));
+            return EscapeSqlIdentifier(MapperConfig.GetColumnName(property, type));
         }
         /// <summary>
         /// 返回转码后的主键列名
@@ -137,7 +137,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetKey<T>()
         {
-            return EscapeSqlIdentifier(MetaConfig.GetKey<T>());
+            return EscapeSqlIdentifier(MapperConfig.GetKey<T>());
         }
         /// <summary>
         /// 返回转码后的主键列名
@@ -147,7 +147,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         protected internal string GetKey(Type type)
         {
-            return EscapeSqlIdentifier(MetaConfig.GetKey(type));
+            return EscapeSqlIdentifier(MapperConfig.GetKey(type));
         }
         #endregion
 

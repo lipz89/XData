@@ -14,11 +14,14 @@ namespace XData.Meta
         public TableMeta(Type type)
         {
             this.Type = type;
-            this.TableName = MetaConfig.GetTableName(type);
+            this.TableName = MapperConfig.GetTableName(type);
         }
         public Type Type { get; }
         public string TableName { get; internal set; }
-        public ColumnMeta Key { get; internal set; }
+        public ColumnMeta Key
+        {
+            get { return MapperConfig.GetKeyMeta(this.Type); }
+        }
         public IReadOnlyList<ColumnMeta> Columns { get; internal set; }
 
         public bool IsSimpleType()
@@ -50,21 +53,21 @@ namespace XData.Meta
             {
                 if (!tableName.IsNullOrWhiteSpace())
                 {
-                    MetaConfig.MetaTableName(type, tableName);
+                    MapperConfig.HasTableName(type, tableName);
                 }
                 var meta = new TableMeta(type);
                 if (!meta.IsSimpleType())
                 {
-                    meta.Key = MetaConfig.GetKeyMeta(type);
+                    //meta.Key = MapperConfig.GetKeyMeta(type);
 
                     var columns = new List<ColumnMeta>();
 
                     foreach (var info in meta.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                     {
                         var mi = new MInfo(info, meta.Type);
-                        if (DbTypes.ContainsType(info.PropertyType) && !MetaConfig.IsIgnore(info, meta.Type))
+                        if (DbTypes.ContainsType(info.PropertyType) && !MapperConfig.IsIgnore(info, meta.Type))
                         {
-                            var columnName = MetaConfig.GetColumnName(info, meta.Type);
+                            var columnName = MapperConfig.GetColumnName(info, meta.Type);
                             columns.Add(new ColumnMeta(mi)
                             {
                                 ColumnName = columnName
@@ -74,9 +77,9 @@ namespace XData.Meta
                     foreach (var info in meta.Type.GetFields(BindingFlags.Instance | BindingFlags.Public))
                     {
                         var mi = new MInfo(info, meta.Type);
-                        if (DbTypes.ContainsType(info.FieldType) && !MetaConfig.IsIgnore(info, meta.Type))
+                        if (DbTypes.ContainsType(info.FieldType) && !MapperConfig.IsIgnore(info, meta.Type))
                         {
-                            var columnName = MetaConfig.GetColumnName(info, meta.Type);
+                            var columnName = MapperConfig.GetColumnName(info, meta.Type);
                             columns.Add(new ColumnMeta(mi)
                             {
                                 ColumnName = columnName

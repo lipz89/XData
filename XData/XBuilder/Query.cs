@@ -28,10 +28,9 @@ namespace XData.XBuilder
         protected int? _top;
         protected List<T> _list;
         protected string _fieldsPart;
-        //protected Dictionary<string, string> fieldSqls = new Dictionary<string, string>();
         private LambdaExpression selector;
-
-        //protected string _innerFieldsPart;
+        private string _wherePart;
+        private string _orderPart;
 
         #endregion
 
@@ -68,31 +67,6 @@ namespace XData.XBuilder
                     ps.AddRange(this.where._parameters);
                 }
                 return ps.AsReadOnly();
-            }
-        }
-        internal string WherePart
-        {
-            get
-            {
-                var wherePart = string.Empty;
-                if (this.where != null)
-                {
-                    this.where.parameterIndex = this.parameterIndex;
-                    wherePart = this.where.ToSql();
-                }
-                return wherePart;
-            }
-        }
-        internal string OrderPart
-        {
-            get
-            {
-                var orderPart = string.Empty;
-                if (this.order != null)
-                {
-                    orderPart = this.order.ToSql();
-                }
-                return orderPart;
             }
         }
 
@@ -149,6 +123,7 @@ namespace XData.XBuilder
             this.where = this.where ?? new Where<T>(Context, this);
             this.where.Add(expression);
             this._list = null;
+            this._wherePart = null;
             return this;
         }
         /// <summary>
@@ -165,6 +140,7 @@ namespace XData.XBuilder
             this.where = this.where ?? new Where<T>(Context, this);
             this.where.AddOr(expression);
             this._list = null;
+            this._wherePart = null;
             return this;
         }
         /// <summary>
@@ -175,6 +151,7 @@ namespace XData.XBuilder
         {
             this.where = null;
             this._list = null;
+            this._wherePart = null;
             return this;
         }
 
@@ -307,8 +284,9 @@ namespace XData.XBuilder
             {
                 return this._list.Count;
             }
+            this.parameterIndex = 0;
             var tableName = GetTableNameOrInnerSql();
-            var sql = string.Format("SELECT COUNT(1) FROM {0} {1}", tableName, this.WherePart);
+            var sql = string.Format("SELECT COUNT(1) FROM {0} {1}", tableName, this.GetWherePart());
             return (int)Context.ExecuteScalar(sql, CommandType.Text, this.DbParameters);
         }
         /// <summary>
@@ -336,9 +314,10 @@ namespace XData.XBuilder
                         return (TAggregate)_dynamiclist.Average(func);
                 }
             }
+            this.parameterIndex = 0;
             var tableName = GetTableNameOrInnerSql();
             var columnName = SqlExpressionVistor.Visit(selector, this);
-            var sql = string.Format("SELECT {5}({4}{3}) FROM {0} {1} {2}", tableName, this.WherePart, this.OrderPart, columnName, this.DistinctPart, aggregateName);
+            var sql = string.Format("SELECT {5}({4}{3}) FROM {0} {1} {2}", tableName, this.GetWherePart(), this.GetOrderPart(), columnName, this.DistinctPart, aggregateName);
             return (TAggregate)Context.ExecuteScalar(sql, CommandType.Text, this.DbParameters);
         }
         /// <summary>
@@ -469,7 +448,7 @@ namespace XData.XBuilder
             this.parameterIndex = 0;
             var _tableName = GetTableNameOrInnerSql();
             var fieldsPart = this.InitFieldsPart();
-            return string.Format("SELECT {3} {4} {5} FROM {0} {1} {2}", _tableName, this.WherePart, this.OrderPart, this.DistinctPart, this.TopPart, fieldsPart);
+            return string.Format("SELECT {3} {4} {5} FROM {0} {1} {2}", _tableName, this.GetWherePart(), this.GetOrderPart(), this.DistinctPart, this.TopPart, fieldsPart);
         }
 
         /// <summary>
@@ -481,12 +460,28 @@ namespace XData.XBuilder
             this.parameterIndex = 0;
             var _tableName = GetTableNameOrInnerSql();
             var fieldsPart = this.InitFieldsPart();
-            return string.Format("SELECT {2} {3} {4} FROM {0} {1}", _tableName, this.WherePart, this.DistinctPart, this.TopPart, fieldsPart);
+            return string.Format("SELECT {2} {3} {4} FROM {0} {1}", _tableName, this.GetWherePart(), this.DistinctPart, this.TopPart, fieldsPart);
         }
 
         #endregion
 
         #region ProtectedMethods
+        internal string GetWherePart()
+        {
+            if (this._wherePart.IsNullOrWhiteSpace() && this.where != null)
+            {
+                this._wherePart = this.where.ToSql();
+            }
+            return _wherePart;
+        }
+        internal string GetOrderPart()
+        {
+            if (this._orderPart.IsNullOrWhiteSpace() && this.order != null)
+            {
+                this._orderPart = this.order.ToSql();
+            }
+            return _orderPart;
+        }
 
         /// <summary>
         /// 获取子查询Sql或表名
@@ -527,46 +522,6 @@ namespace XData.XBuilder
             var strs = new Strings();
             GetMembers(selector.Body, strs, null);
             _fieldsPart = strs.ToString();
-            ////var outerstrs = new Strings();
-
-            //var newExp = selector.Body as NewExpression;
-
-            //if (selector.Body is MemberInitExpression)
-            //{
-            //    var exp = (MemberInitExpression)selector.Body;
-            //    newExp = exp.NewExpression;
-            //    foreach (var binding in exp.Bindings)
-            //    {
-            //        var me = binding as MemberAssignment;
-            //        var sql = SqlExpressionVistor.Visit(me.Expression, this);
-            //        var field = EscapeSqlIdentifier(binding.Member.Name);
-            //        //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
-            //        strs.Add(string.Format("{0} AS {1}", sql, field));
-            //        namedType.Add(binding.Member, sql);
-            //        //outerstrs.Add(osql);
-            //    }
-            //}
-
-            //var inits = newExp.Arguments;
-            //var mems = newExp.Members;
-            //for (int i = 0; i < mems?.Count; i++)
-            //{
-            //    if (inits[i] is MemberExpression)
-            //    {
-            //        var sql = SqlExpressionVistor.Visit(inits[i], this);
-            //        var field = EscapeSqlIdentifier(mems[i].Name);
-            //        //var osql = EscapeSqlIdentifier(outTableName) + "." + field;
-            //        strs.Add(string.Format("{0} AS {1}", sql, field));
-            //        namedType.Add(mems[i], sql);
-            //        //outerstrs.Add(osql);
-            //    }
-            //    //else if (inits[i] is NewExpression) { }
-            //    else
-            //    {
-            //        throw Error.NotSupportedException("不支持复杂的类型初始化。");
-            //    }
-            //}
-            //_fieldsPart = strs.ToString();
         }
 
         protected void GetMembers(Expression expression, Strings strs, MemberInfo member, string path = null)
@@ -586,9 +541,9 @@ namespace XData.XBuilder
             }
 
             var newExp = expression as NewExpression;
-            if (selector.Body is MemberInitExpression)
+            if (expression is MemberInitExpression)
             {
-                var exp = (MemberInitExpression)selector.Body;
+                var exp = (MemberInitExpression)expression;
                 newExp = exp.NewExpression;
                 foreach (var binding in exp.Bindings)
                 {

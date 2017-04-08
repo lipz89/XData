@@ -20,11 +20,10 @@ namespace Test
     {
         public TestQuery()
         {
-            MetaConfig.MetaTableName<TestModel>("Test");
-            MetaConfig.MetaKey<TestModel>(x => x.ID);
-            MetaConfig.MetaColumnName<TestModel>(x => x.Text, "Name");
-            MetaConfig.IgnoreColumn<Supplier>(x => x.RowVersion);
-            MetaConfig.IgnoreColumn<Menu>(x => x.RowVersion);
+            MapperConfig.HasTableName<TestModel>("Test");
+            MapperConfig.HasColumnName<TestModel>(x => x.Text, "Name");
+            MapperConfig.IgnoreColumn<Supplier>(x => x.RowVersion);
+            MapperConfig.IgnoreColumn<Menu>(x => x.RowVersion);
         }
 
         //private string a { get; set; } = "鄂20160196";
@@ -120,10 +119,26 @@ namespace Test
         }
 
         [Test]
-        public void TestRefresh()
+        public void TestOrder()
         {
             var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
-            var query = db.Query<TestModel>().Where(x => x.Index < 10).OrderBy(x => x.Index);
+            var query = db.Query<TestModel>().Where(x => x.Index < 10).OrderBy(x => x.Index+1);
+            query.ToList();
+        }
+
+        [Test]
+        public void TestSingle()
+        {
+            var db = Program.NewContext();
+            var q = db.GetFirstOrDefault<TestModel>(x => x.Index == 100);
+            Console.WriteLine(JsonConvert.SerializeObject(q));
+
+
+            var q2 = db.GetByKey<TestModel>(100,x=>x.ID);
+            Console.WriteLine(JsonConvert.SerializeObject(q2));
+
+            var q3 = db.GetByKey<TestModel>(40);
+            Console.WriteLine(JsonConvert.SerializeObject(q3));
         }
     }
 }

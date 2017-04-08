@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 
 using XData.Common;
 using XData.Core;
@@ -693,7 +694,21 @@ namespace XData
         /// <param name="ex">异常</param>
         private void Log(LogLevel level, string message, Exception ex = null)
         {
+            ConsoleWrite(level, message, ex);
             //Log(level, 0, message, ex, null);
+        }
+
+        [Conditional("DEBUG")]
+        private void ConsoleWrite(LogLevel level, string message, Exception ex = null)
+        {
+            Console.WriteLine(level + ":");
+            Console.WriteLine(message);
+            if (ex != null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex.Message);
+                Console.ForegroundColor = ConsoleColor.White;
+            }
         }
 
         /// <summary>

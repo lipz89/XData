@@ -46,5 +46,22 @@ namespace XData.Extentions
             }
             return member.Name;
         }
+
+        public static Expression ChangeType(this Expression expression, Type type)
+        {
+            var exp = expression;
+            while (type != exp.Type)
+            {
+                if (exp is UnaryExpression)
+                {
+                    exp = (exp as UnaryExpression).Operand;
+                }
+                else
+                {
+                    exp = Expression.Convert(exp, type);
+                }
+            }
+            return exp;
+        }
     }
 }

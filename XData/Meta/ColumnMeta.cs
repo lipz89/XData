@@ -25,8 +25,6 @@ namespace XData.Meta
             get { return Member?.Name; }
         }
 
-        internal object Value { get; set; }
-
         public Expression Expression { get; internal set; }
 
         public Type Type

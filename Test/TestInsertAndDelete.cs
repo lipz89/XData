@@ -15,7 +15,7 @@ namespace Test
         [Test]
         public void Test()
         {
-            MetaConfig.MetaKey<Menu>(x => x.ID);
+            MapperConfig.HasKey<Menu>(x => x.ID);
 
             var model = new Menu()
             {

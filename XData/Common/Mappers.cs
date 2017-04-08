@@ -4,21 +4,85 @@ using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 
-using XData.Common;
 using XData.Extentions;
 using XData.Meta;
 
-namespace XData.Core
+namespace XData.Common
 {
     internal static class Mappers
     {
-        private static Cache<Type, Func<Dictionary<string, object>, object>> objectMappers = new Cache<Type, Func<Dictionary<string, object>, object>>();
+        private static readonly Cache<Type, Dictionary<string, object>> _types = new Cache<Type, Dictionary<string, object>>();
+        private static readonly Cache<Type, Func<Dictionary<string, object>, object>> objectMappers = new Cache<Type, Func<Dictionary<string, object>, object>>();
 
-        private static object GetDefaultValue(Type type)
+
+        public static object FromString(Type enumType, string value)
         {
-            var exp = Expression.Default(type);
-            var lambda = Expression.Lambda(exp);
-            return lambda.Compile().DynamicInvoke();
+            Dictionary<string, object> map = _types.Get(enumType, () =>
+            {
+                var values = Enum.GetValues(enumType);
+                var newmap = new Dictionary<string, object>(values.Length, StringComparer.InvariantCultureIgnoreCase);
+                foreach (var v in values)
+                {
+                    newmap.Add(v.ToString(), v);
+                }
+                return newmap;
+            });
+
+            return map[value];
+        }
+
+        public static object FromIntegral(Type enumType, object value)
+        {
+            var udType = Enum.GetUnderlyingType(enumType);
+            var val = value;
+            if (value.GetType() != udType)
+            {
+                val = Convert.ChangeType(value, udType, null);
+            }
+            return Enum.ToObject(enumType, val);
+        }
+
+        public static Func<object, object> GetMapper(Type dstType, Type srcType)
+        {
+            if (dstType.IsNullable())
+            {
+                return GetMapper(dstType.NonNullableType(), srcType);
+            }
+            if (dstType.IsEnum && srcType.IsIntegralType())
+            {
+                return src => Mappers.FromIntegral(dstType, src);
+            }
+            if (dstType.IsEnum && srcType == typeof(string))
+            {
+                return src => Mappers.FromString(dstType, (string)src);
+            }
+            if (dstType == typeof(Guid) && srcType == typeof(byte[]))
+            {
+                return src => new Guid((byte[])src);
+            }
+            if (dstType == typeof(bool))
+            {
+                return src =>
+                {
+                    var s = src.ToString();
+                    return s != "0" && !s.Equals("false", StringComparison.CurrentCultureIgnoreCase);
+                };
+            }
+            return src =>
+            {
+                var cvt = TypeDescriptor.GetConverter(dstType);
+                if (cvt.CanConvertFrom(srcType))
+                {
+                    return cvt.ConvertFrom(src);
+                }
+                cvt = TypeDescriptor.GetConverter(src);
+                if (cvt.CanConvertTo(dstType))
+                {
+                    return cvt.ConvertTo(src, dstType);
+                }
+
+                return Convert.ChangeType(src, dstType, null);
+            };
         }
         public static Func<Dictionary<string, object>, object> GetObjectMapper(TableMeta tableMeta)
         {
@@ -41,7 +105,7 @@ namespace XData.Core
                         var t = info.ParameterType;
                         var n = info.Name;
                         var col = columns.FirstOrDefault(x => x.Name.IsSameField(n));
-                        var val = GetDefaultValue(t);
+                        var val = t.GetDefaultValue();
                         if (col != null)
                         {
                             var key = col.ColumnName;
@@ -50,7 +114,7 @@ namespace XData.Core
                                 val = param[key];
                                 if (val != null && !t.IsInstanceOfType(val))
                                 {
-                                    var mapper = GetMapper(t, val.GetType());
+                                    var mapper = Mappers.GetMapper(t, val.GetType());
                                     val = mapper(val);
                                 }
                                 param.Remove(key);
@@ -60,7 +124,7 @@ namespace XData.Core
                         else
                         {
                             var prop = tableMeta.Type.GetProperty(n);
-                            if (!DbTypes.IsSimpleType(prop.PropertyType))
+                            if (prop != null && !DbTypes.IsSimpleType(prop.PropertyType))
                             {
                                 var vs = param.Where(x => x.Key.StartsWith(n + "-"))
                                             .ToDictionary(x => x.Key.Substring(n.Length + 1), x => x.Value);
@@ -85,7 +149,7 @@ namespace XData.Core
                             var val = param[key];
                             if (val != null && !col.Type.IsInstanceOfType(val))
                             {
-                                var mapper = GetMapper(col.Type, val.GetType());
+                                var mapper = Mappers.GetMapper(col.Type, val.GetType());
                                 val = mapper(val);
                             }
                             col.SetValue(instance, val);
@@ -120,49 +184,6 @@ namespace XData.Core
 
                 return map;
             });
-        }
-
-        public static Func<object, object> GetMapper(Type dstType, Type srcType)
-        {
-            if (dstType.IsNullable())
-            {
-                return GetMapper(dstType.NonNullableType(), srcType);
-            }
-            if (dstType.IsEnum && srcType.IsIntegralType())
-            {
-                return src => CommonMapper.FromIntegral(dstType, src);
-            }
-            if (dstType.IsEnum && srcType == typeof(string))
-            {
-                return src => CommonMapper.FromString(dstType, (string)src);
-            }
-            if (dstType == typeof(Guid) && srcType == typeof(byte[]))
-            {
-                return src => new Guid((byte[])src);
-            }
-            if (dstType == typeof(bool))
-            {
-                return src =>
-                {
-                    var s = src.ToString();
-                    return s != "0" && !s.Equals("false", StringComparison.CurrentCultureIgnoreCase);
-                };
-            }
-            return src =>
-            {
-                var cvt = TypeDescriptor.GetConverter(dstType);
-                if (cvt.CanConvertFrom(srcType))
-                {
-                    return cvt.ConvertFrom(src);
-                }
-                cvt = TypeDescriptor.GetConverter(src);
-                if (cvt.CanConvertTo(dstType))
-                {
-                    return cvt.ConvertTo(src, dstType);
-                }
-
-                return Convert.ChangeType(src, dstType, null);
-            };
         }
     }
 }

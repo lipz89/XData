@@ -17,10 +17,10 @@ namespace XData.XBuilder
     public sealed class Update<T> : SqlBuilber, IExecutable
     {
         #region Fields
-        private bool _hasWhere;
+        private bool _hasKeyWhere;
         private readonly Strings setterString = new Strings();
-        private readonly ColumnMeta keyMeta;
         private Where<T> where;
+        private string _wherePart;
         #endregion
 
         #region Properties
@@ -47,7 +47,6 @@ namespace XData.XBuilder
             : base(context)
         {
             this.tableMeta = TableMeta.From<T>();
-            this.keyMeta = tableMeta.Key;
             this.tableName = this.tableMeta.TableName;
             this.namedType = new NamedType(this.tableMeta.Type, this.tableName);
             this.typeVisitor.Add(this.namedType);
@@ -72,7 +71,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(newEntity));
             }
 
-            var columns = tableMeta.Columns.Where(x => x.Member != keyMeta?.Member).ToList();
+            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member).ToList();
             foreach (var column in columns)
             {
                 var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
@@ -98,20 +97,22 @@ namespace XData.XBuilder
 
         private void AddConditionByKey(T oldEntity, Expression<Func<T, object>> primaryKey)
         {
-            var exp = keyMeta?.Expression as LambdaExpression ?? primaryKey;
+            var exp = tableMeta.Key?.Expression as LambdaExpression;
+            if (exp == null && primaryKey != null)
+            {
+                MapperConfig.HasKey(primaryKey);
+                exp = primaryKey;
+            }
             if (exp != null)
             {
                 var val = exp.Compile().DynamicInvoke(oldEntity);
-                var mem = exp.Body;
-                if (mem is UnaryExpression)
-                {
-                    mem = (mem as UnaryExpression).Operand;
-                }
-                var newExp = Expression.Equal(mem, Expression.Constant(val));
+                var keyExp = Expression.Constant(val);
+                var mem = exp.Body.ChangeType(keyExp.Type);
+                var newExp = Expression.Equal(mem, keyExp);
                 var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
                 this.where = new Where<T>(Context, this);
                 this.where.Add(lambda);
-                _hasWhere = true;
+                _hasKeyWhere = true;
             }
         }
 
@@ -131,7 +132,7 @@ namespace XData.XBuilder
             }
 
             var exceptFields = fields.Select(x => x.GetPropertyName());
-            var columns = tableMeta.Columns.Where(x => x.Member != keyMeta?.Member);
+            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member);
             columns = columns.Where(x => exceptFields.Contains(x.Member.Name) == include).ToList();
             foreach (var column in columns)
             {
@@ -166,7 +167,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(fieldValues));
             }
 
-            var columns = tableMeta.Columns.Where(x => x.Member != keyMeta?.Member && fieldValues.Keys.Contains(x.Member.Name)).ToList();
+            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member && fieldValues.Keys.Contains(x.Member.Name)).ToList();
             foreach (var column in columns)
             {
                 var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
@@ -197,12 +198,13 @@ namespace XData.XBuilder
             {
                 throw Error.ArgumentNullException(nameof(expression));
             }
-            if (_hasWhere)
+            if (_hasKeyWhere)
             {
                 throw Error.Exception("已经指定了主键列为Where条件。");
             }
             this.where = this.where ?? new Where<T>(Context, this);
             this.where.Add(expression);
+            this._wherePart = null;
             return this;
         }
         /// <summary>
@@ -216,12 +218,13 @@ namespace XData.XBuilder
             {
                 throw Error.ArgumentNullException(nameof(expression));
             }
-            if (_hasWhere)
+            if (_hasKeyWhere)
             {
                 throw Error.Exception("已经指定了主键列为Where条件。");
             }
             this.where = this.where ?? new Where<T>(Context, this);
             this.where.AddOr(expression);
+            this._wherePart = null;
             return this;
         }
         /// <summary>
@@ -230,9 +233,10 @@ namespace XData.XBuilder
         /// <returns></returns>
         public Update<T> ClearWhere()
         {
-            if (!this._hasWhere)
+            if (!this._hasKeyWhere)
             {
                 this.where = null;
+                this._wherePart = null;
             }
             return this;
         }
@@ -257,13 +261,15 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            var wherePart = string.Empty;
-            if (this.where != null)
+            return string.Format("UPDATE {0} SET {1} {2}", tableName, this.setterString, this.GetWherePart());
+        }
+        internal string GetWherePart()
+        {
+            if (this._wherePart.IsNullOrWhiteSpace() && this.where != null)
             {
-                this.where.parameterIndex = this.parameterIndex;
-                wherePart = this.where.ToSql();
+                this._wherePart = this.where.ToSql();
             }
-            return string.Format("UPDATE {0} SET {1} {2}", tableName, this.setterString, wherePart);
+            return _wherePart;
         }
         #endregion
     }

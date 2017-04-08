@@ -12,7 +12,7 @@ namespace XData.Meta
     /// <summary>
     /// 元数据配置类
     /// </summary>
-    public static class MetaConfig
+    public static class MapperConfig
     {
         private static readonly Dictionary<Type, string> TableNames = new Dictionary<Type, string>();
         private static readonly Dictionary<Type, ColumnMeta> TableKeys = new Dictionary<Type, ColumnMeta>();
@@ -23,11 +23,11 @@ namespace XData.Meta
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="tableName"></param>
-        public static void MetaTableName<T>(string tableName)
+        public static void HasTableName<T>(string tableName)
         {
-            MetaTableName(typeof(T), tableName);
+            HasTableName(typeof(T), tableName);
         }
-        internal static void MetaTableName(Type type, string tableName)
+        internal static void HasTableName(Type type, string tableName)
         {
             if (tableName.IsNullOrWhiteSpace())
             {
@@ -49,8 +49,7 @@ namespace XData.Meta
         /// <typeparam name="T"></typeparam>
         /// <param name="property"></param>
         /// <param name="columnName"></param>
-        public static void MetaColumnName<T>(Expression<Func<T, object>> property, string columnName)
-            where T : class
+        public static void HasColumnName<T>(Expression<Func<T, object>> property, string columnName)
         {
             if (property == null)
             {
@@ -94,7 +93,6 @@ namespace XData.Meta
         /// <typeparam name="T"></typeparam>
         /// <param name="property"></param>
         public static void IgnoreColumn<T>(Expression<Func<T, object>> property)
-            where T : class
         {
             if (property == null)
             {
@@ -147,8 +145,7 @@ namespace XData.Meta
         /// <typeparam name="T"></typeparam>
         /// <param name="property"></param>
         /// <param name="columnName"></param>
-        public static void MetaKey<T>(Expression<Func<T, object>> property, string columnName = null)
-            where T : class
+        public static void HasKey<T>(Expression<Func<T, object>> property, string columnName = null)
         {
             if (property == null)
             {
