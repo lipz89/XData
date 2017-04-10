@@ -15,7 +15,7 @@ namespace XData
 {
     public partial class XContext
     {
-        #region Query
+        #region SqlQuery
 
         /// <summary>
         /// 从数据源创建数据缓存
@@ -142,9 +142,14 @@ namespace XData
         /// <typeparam name="T"></typeparam>
         /// <param name="condition"></param>
         /// <returns></returns>
-        public T GetFirstOrDefault<T>(Expression<Func<T, bool>> condition)
+        public T GetFirstOrDefault<T>(Expression<Func<T, bool>> condition = null)
         {
-            var query = this.Query<T>().Where(condition).Top(1);
+            var query = this.Query<T>();
+            if (condition != null)
+            {
+                query = query.Where(condition);
+            }
+            query = query.Top(1);
             return query.ToList().FirstOrDefault();
         }
 
@@ -267,6 +272,7 @@ namespace XData
         {
             return new Update<T>(this, newEntity, include, fields);
         }
+
         /// <summary>
         /// 根据指定实体构造一个更新指定字段的命令,如果<paramref name="newEntity"/>中没有指定主键，需要在命令后面指定where条件
         /// </summary>
@@ -278,6 +284,7 @@ namespace XData
         {
             return new Update<T>(this, newEntity, true, fields);
         }
+
         /// <summary>
         /// 根据指定的字段值列字典构造一个更新命令,需要在命令后面指定where条件
         /// </summary>
@@ -292,6 +299,7 @@ namespace XData
         #endregion
 
         #region InsertBuilder
+
         /// <summary>
         /// 根据指定的实体构造一个插入命令
         /// </summary>
@@ -302,6 +310,7 @@ namespace XData
         {
             return new Insert<T>(this, entity);
         }
+
         /// <summary>
         /// 根据实体和指定的字段构造一个插入命令
         /// </summary>
@@ -326,6 +335,7 @@ namespace XData
         {
             return new Insert<T>(this, entity, include, fields);
         }
+
         /// <summary>
         /// 根据指定的字段和值构造一个插入命令
         /// </summary>
@@ -352,6 +362,7 @@ namespace XData
         {
             return new Delete<T>(this, entity, primaryKey);
         }
+
         /// <summary>
         /// 构造一个删除命令,需要在命令后面指定where条件
         /// </summary>
