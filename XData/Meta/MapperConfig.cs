@@ -18,6 +18,7 @@ namespace XData.Meta
         private static readonly Dictionary<Type, ColumnMeta> TableKeys = new Dictionary<Type, ColumnMeta>();
         private static readonly Dictionary<MInfo, string> ColumnNames = new Dictionary<MInfo, string>();
         private static readonly List<MInfo> IgnoreColumns = new List<MInfo>();
+        private static readonly Dictionary<Type, List<MInfo>> TableIdentities = new Dictionary<Type, List<MInfo>>();
         /// <summary>
         /// 配置模型对应的表名
         /// </summary>
@@ -176,6 +177,34 @@ namespace XData.Meta
                 TableKeys.Add(type, key);
             }
         }
+
+        /// <summary>
+        /// 配置模型的自增列名
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="property"></param>
+        public static void HasIdentity<T>(Expression<Func<T, object>> property)
+        {
+            var member = property.GetMember();
+            if (member == null)
+            {
+                throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
+            }
+            var m = new MInfo(member, typeof(T));
+            if (IgnoreColumns.Contains(m))
+            {
+                throw Error.ArgumentException("属性已经被忽略。", nameof(property));
+            }
+            var type = typeof(T);
+            if (!TableIdentities.ContainsKey(type))
+            {
+                TableIdentities.Add(type, new List<MInfo>());
+            }
+            if (!TableIdentities[type].Contains(m))
+            {
+                TableIdentities[type].Add(m);
+            }
+        }
         /// <summary>
         /// 返回模型对应的表名
         /// </summary>
@@ -278,6 +307,27 @@ namespace XData.Meta
             if (TableKeys.ContainsKey(type))
             {
                 return TableKeys[type];
+            }
+            return null;
+        }
+        /// <summary>
+        /// 返回模型对应的主键字段名
+        /// </summary>
+        /// <returns></returns>
+        internal static List<MInfo> GetIdentities<T>()
+        {
+            return GetIdentities(typeof(T));
+        }
+        /// <summary>
+        /// 返回模型对应的主键字段名
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        internal static List<MInfo> GetIdentities(Type type)
+        {
+            if (TableIdentities.ContainsKey(type))
+            {
+                return TableIdentities[type];
             }
             return null;
         }

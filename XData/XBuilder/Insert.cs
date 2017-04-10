@@ -44,7 +44,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(entity));
             }
 
-            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member).ToList();
+            var columns = tableMeta.Columns.Where(x => x.CanInsert).ToList();
             foreach (var column in columns)
             {
                 fieldString.Add(EscapeSqlIdentifier(column.ColumnName));
@@ -81,7 +81,7 @@ namespace XData.XBuilder
             }
 
             var exceptFields = fields.Select(x => x.GetPropertyName());
-            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member && exceptFields.Contains(x.Member.Name) == include).ToList();
+            var columns = tableMeta.Columns.Where(x => x.CanInsert && exceptFields.Contains(x.Member.Name) == include).ToList();
             //if (columns.IsNullOrEmpty())
             //{
             //    throw Error.ArgumentException("必须插入至少一个字段。", nameof(fields));
@@ -106,7 +106,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(fieldValues));
             }
 
-            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member && fieldValues.Keys.Contains(x.Member.Name)).ToList();
+            var columns = tableMeta.Columns.Where(x => x.CanInsert && fieldValues.Keys.Contains(x.Member.Name)).ToList();
             //if (columns.IsNullOrEmpty())
             //{
             //    throw Error.Exception("必须插入至少一个字段。");

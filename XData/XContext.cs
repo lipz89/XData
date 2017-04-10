@@ -694,7 +694,7 @@ namespace XData
         /// <param name="ex">异常</param>
         private void Log(LogLevel level, string message, Exception ex = null)
         {
-            ConsoleWrite(level, message, ex);
+            //ConsoleWrite(level, message, ex);
             //Log(level, 0, message, ex, null);
         }
 

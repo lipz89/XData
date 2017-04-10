@@ -58,6 +58,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestArea.cs" />
     <Compile Include="TestInsertAndDelete.cs" />
     <Compile Include="TestJoin.cs" />
     <Compile Include="TestQuery.cs" />

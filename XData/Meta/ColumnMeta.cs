@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -13,6 +14,7 @@ namespace XData.Meta
         private MInfo minfo;
         public ColumnMeta(MInfo member)
         {
+            TableType = member.Caller;
             minfo = member;
         }
         public MemberInfo Member
@@ -25,8 +27,39 @@ namespace XData.Meta
             get { return Member?.Name; }
         }
 
+        public bool CanUpdate
+        {
+            get
+            {
+                var k = MapperConfig.GetKeyMeta(TableType);
+                if (k != null && k.Member.MetadataToken == Member.MetadataToken)
+                {
+                    return false;
+                }
+                var ids = MapperConfig.GetIdentities(TableType);
+                if (ids != null && ids.Any(x => x.Member.MetadataToken == Member.MetadataToken))
+                {
+                    return false;
+                }
+                return true;
+            }
+        }
+        public bool CanInsert
+        {
+            get
+            {
+                var ids = MapperConfig.GetIdentities(TableType);
+                if (ids != null && ids.Any(x => x.Member.MetadataToken == Member.MetadataToken))
+                {
+                    return false;
+                }
+                return true;
+            }
+        }
+
         public Expression Expression { get; internal set; }
 
+        public Type TableType { get; private set; }
         public Type Type
         {
             get

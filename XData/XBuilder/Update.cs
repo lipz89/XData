@@ -71,7 +71,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(newEntity));
             }
 
-            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member).ToList();
+            var columns = tableMeta.Columns.Where(x => x.CanUpdate).ToList();
             foreach (var column in columns)
             {
                 var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
@@ -132,7 +132,7 @@ namespace XData.XBuilder
             }
 
             var exceptFields = fields.Select(x => x.GetPropertyName());
-            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member);
+            var columns = tableMeta.Columns.Where(x => x.CanUpdate);
             columns = columns.Where(x => exceptFields.Contains(x.Member.Name) == include).ToList();
             foreach (var column in columns)
             {
@@ -167,7 +167,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(fieldValues));
             }
 
-            var columns = tableMeta.Columns.Where(x => x.Member != tableMeta.Key?.Member && fieldValues.Keys.Contains(x.Member.Name)).ToList();
+            var columns = tableMeta.Columns.Where(x => x.CanUpdate && fieldValues.Keys.Contains(x.Member.Name)).ToList();
             foreach (var column in columns)
             {
                 var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
