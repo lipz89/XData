@@ -251,21 +251,12 @@ namespace XData.Core.ExpressionVisitors
         protected override Expression VisitUnary(UnaryExpression node)
         {
             nodeTypes.Push(node.NodeType);
-            sql += "(";
             switch (node.NodeType)
             {
-                //case ExpressionType.Convert:
-                //case ExpressionType.Unbox:
-                //    var tt = node.Type;
-                //    var st = string.Empty;
-                //    if (tt == typeof(int))
-                //    {
-                //        st = "INT";
-                //    }
-                //    sql += "CONVERT(" + st + ",";
-                //    base.Visit(node.Operand);
-                //    sql += ")";
-                //    break;
+                case ExpressionType.Convert:
+                case ExpressionType.Unbox:
+                    base.Visit(node.Operand);
+                    break;
                 case ExpressionType.Not:
                     sql += " NOT( ";
                     base.Visit(node.Operand);
@@ -274,7 +265,6 @@ namespace XData.Core.ExpressionVisitors
                 default:
                     throw Error.NotSupportedException("不支持的一元运算:" + node.NodeType);
             }
-            sql += ")";
             nodeTypes.Pop();
             return node;
         }

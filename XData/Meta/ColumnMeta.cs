@@ -36,8 +36,8 @@ namespace XData.Meta
                 {
                     return false;
                 }
-                var ids = MapperConfig.GetIdentities(TableType);
-                if (ids != null && ids.Any(x => x.Member.MetadataToken == Member.MetadataToken))
+                var id = MapperConfig.GetIdentities(TableType);
+                if (id != null && id.Member.MetadataToken == Member.MetadataToken)
                 {
                     return false;
                 }
@@ -48,8 +48,8 @@ namespace XData.Meta
         {
             get
             {
-                var ids = MapperConfig.GetIdentities(TableType);
-                if (ids != null && ids.Any(x => x.Member.MetadataToken == Member.MetadataToken))
+                var id = MapperConfig.GetIdentities(TableType);
+                if (id != null && id.Member.MetadataToken == Member.MetadataToken)
                 {
                     return false;
                 }

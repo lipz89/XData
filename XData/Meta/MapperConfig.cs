@@ -18,7 +18,7 @@ namespace XData.Meta
         private static readonly Dictionary<Type, ColumnMeta> TableKeys = new Dictionary<Type, ColumnMeta>();
         private static readonly Dictionary<MInfo, string> ColumnNames = new Dictionary<MInfo, string>();
         private static readonly List<MInfo> IgnoreColumns = new List<MInfo>();
-        private static readonly Dictionary<Type, List<MInfo>> TableIdentities = new Dictionary<Type, List<MInfo>>();
+        private static readonly Dictionary<Type, MInfo> TableIdentities = new Dictionary<Type, MInfo>();
         /// <summary>
         /// 配置模型对应的表名
         /// </summary>
@@ -198,11 +198,7 @@ namespace XData.Meta
             var type = typeof(T);
             if (!TableIdentities.ContainsKey(type))
             {
-                TableIdentities.Add(type, new List<MInfo>());
-            }
-            if (!TableIdentities[type].Contains(m))
-            {
-                TableIdentities[type].Add(m);
+                TableIdentities.Add(type, m);
             }
         }
         /// <summary>
@@ -252,15 +248,15 @@ namespace XData.Meta
         /// 返回模型对应的字段名
         /// </summary>
         /// <param name="memberInfo"></param>
-        /// <param name="caller"></param>
+        /// <param name="type"></param>
         /// <returns></returns>
-        public static string GetColumnName(MemberInfo memberInfo, Type caller)
+        public static string GetColumnName(MemberInfo memberInfo, Type type)
         {
             if (memberInfo == null)
             {
                 throw Error.ArgumentNullException(nameof(memberInfo));
             }
-            var m = new MInfo(memberInfo, caller);
+            var m = new MInfo(memberInfo, type);
             if (ColumnNames.ContainsKey(m))
             {
                 return ColumnNames[m];
@@ -314,7 +310,7 @@ namespace XData.Meta
         /// 返回模型对应的主键字段名
         /// </summary>
         /// <returns></returns>
-        internal static List<MInfo> GetIdentities<T>()
+        internal static MInfo GetIdentities<T>()
         {
             return GetIdentities(typeof(T));
         }
@@ -323,7 +319,7 @@ namespace XData.Meta
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        internal static List<MInfo> GetIdentities(Type type)
+        internal static MInfo GetIdentities(Type type)
         {
             if (TableIdentities.ContainsKey(type))
             {
@@ -357,15 +353,15 @@ namespace XData.Meta
         /// 判断某字段是否被忽略
         /// </summary>
         /// <param name="memberInfo"></param>
-        /// <param name="caller"></param>
+        /// <param name="type"></param>
         /// <returns></returns>
-        public static bool IsIgnore(MemberInfo memberInfo, Type caller)
+        public static bool IsIgnore(MemberInfo memberInfo, Type type)
         {
             if (memberInfo == null)
             {
                 throw Error.ArgumentNullException(nameof(memberInfo));
             }
-            var m = new MInfo(memberInfo, caller);
+            var m = new MInfo(memberInfo, type);
             return IgnoreColumns.Contains(m);
         }
     }

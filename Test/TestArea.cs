@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using Newtonsoft.Json;
 
@@ -101,22 +102,22 @@ namespace Test
 
             foreach (var model in area86)
             {
-                var sub = details.Where(x => x.pcode == model.code).OrderBy(x => x.code).ToList();
+                var subs = details.Where(x => x.pcode == model.code).OrderBy(x => x.code).ToList();
 
-                foreach (var s in sub)
+                foreach (var sub in subs)
                 {
-                    s.IndexID = indexId++;
-                    s.ParentID = model.ID;
-                    result.Add(s);
+                    sub.IndexID = indexId++;
+                    sub.ParentID = model.ID;
+                    result.Add(sub);
                 }
 
-                foreach (var s in sub)
+                foreach (var sub in subs)
                 {
-                    var subsub = details.Where(x => x.pcode == s.code).OrderBy(x => x.code).ToList();
+                    var subsub = details.Where(x => x.pcode == sub.code).OrderBy(x => x.code).ToList();
                     foreach (var ss in subsub)
                     {
                         ss.IndexID = indexId++;
-                        ss.ParentID = model.ID;
+                        ss.ParentID = sub.ID;
                         result.Add(ss);
                     }
                 }
@@ -124,6 +125,70 @@ namespace Test
 
             result.ForEach(x => x.DictionaryID = id);
             return result.OrderBy(x => x.IndexID).ToList();
+        }
+
+        [Test]
+        public void TestToJson()
+        {
+            var id = Guid.Parse("E6E3763F-A8DF-491A-8CAC-191B228D7624");
+            var db = Program.NewContext();
+            var details = db.Query<Model>().Where(x => x.DictionaryID == id).ToList();
+
+            var area86 = details.Where(x => x.ParentID == null).OrderBy(x => x.code).ToList();
+
+            var dic = new Dictionary<string, object>();
+            var page = GetPage().ToDictionary(x => x.Key, x => area86.Where(x.Value)
+                .OrderBy(i => i.memo)
+                .Select(i => new { i.code, i.address }).ToList());
+            dic.Add("86", page);
+
+            var subs = details.Except(area86).ToList();
+            var seconds = new Dictionary<Guid, string>();
+
+            foreach (var area in area86)
+            {
+                var sub = subs.Where(x => x.ParentID == area.ID).ToList();
+                if (sub.Any())
+                {
+                    var d = new Dictionary<string, object>();
+                    foreach (var model in sub)
+                    {
+                        seconds.Add(model.ID, model.code);
+                        d.Add(model.code, model.address);
+                    }
+                    dic.Add(area.code, d);
+                }
+            }
+
+            foreach (var code in seconds)
+            {
+                var sub = subs.Where(x => x.ParentID == code.Key).ToList();
+                if (sub.Any())
+                {
+                    var d = new Dictionary<string, object>();
+                    foreach (var model in sub)
+                    {
+                        d.Add(model.code, model.address);
+                    }
+                    dic.Add(code.Value, d);
+                }
+            }
+
+            var json = JsonConvert.SerializeObject(dic);
+            var reg = new Regex("\"\\d+\":");
+            var rst = reg.Replace(json, (x) => x.Value.Replace("\"", ""));
+
+        }
+
+        private Dictionary<string, Func<Model, bool>> GetPage()
+        {
+            return new Dictionary<string, Func<Model, bool>>
+            {
+                {"A-G",x=>"ABCDEFG".Contains( x.memo) },
+                {"H-K",x=>"HIJK".Contains( x.memo) },
+                {"L-S",x=>"LMNOPQRS".Contains( x.memo) },
+                {"T-Z",x=>"TUVWXYZ".Contains( x.memo) },
+            };
         }
     }
 
@@ -145,5 +210,11 @@ namespace Test
         public Guid? ParentID { get; set; }
         public string Status { get; set; }
         public bool IsDeleted { get; set; }
+    }
+
+    public class City86
+    {
+        public string code { get; set; }
+        public string address { get; set; }
     }
 }
