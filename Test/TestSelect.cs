@@ -21,7 +21,7 @@ namespace Test
         [Test]
         public void Test()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             //var qu = db.Query<Menu>().Where(x => x.Action != null && !x.IsDeleted);
             //var sql = qu.ToSql();
             ////Console.WriteLine(sql);
@@ -41,7 +41,7 @@ namespace Test
         [Test]
         public void Test2()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var qu = db.Query<Menu>().Where(x => x.Action != null);
             var sql = qu.ToSql();
             //Console.WriteLine(sql);
@@ -57,7 +57,7 @@ namespace Test
         [Test]
         public void Test3()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var qu = db.Query<Menu>();
             var sql = qu.ToSql();
             //Console.WriteLine(sql);
@@ -73,7 +73,7 @@ namespace Test
         [Test]
         public void Test4()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var qu = db.Query<Menu>().Where(x => x.Action != null);
             var sql = qu.ToSql();
             //Console.WriteLine(sql);

@@ -27,9 +27,9 @@ namespace Test
             };
             var db = Program.NewContext();
 
-            var row = db.Insert(model, false, x => x.RowVersion).Execute();
+            var row = db.Insert(model, false, x => x.RowVersion);
 
-            var row2 = db.Delete(model).Execute();
+            var row2 = db.Delete(model);
 
             Console.WriteLine(row);
             Console.WriteLine(row2);
@@ -48,9 +48,9 @@ namespace Test
             };
             var db = Program.NewContext();
 
-            var row = db.Insert(model, x => x.Name, x => x.ID, x => x.Code, x => x.IndexID, x => x.MenuLevel, x => x.IsDeleted).Execute();
+            var row = db.Insert(model, x => x.Name, x => x.ID, x => x.Code, x => x.IndexID, x => x.MenuLevel, x => x.IsDeleted);
 
-            var row2 = db.Delete(model, x => x.ID).Execute();
+            var row2 = db.Delete(model, x => x.ID);
 
             Console.WriteLine(row);
             Console.WriteLine(row2);
@@ -69,9 +69,9 @@ namespace Test
             };
             var db = Program.NewContext();
 
-            var row = db.Insert(model, false, x => x.RowVersion).Execute();
+            var row = db.Insert(model, false, x => x.RowVersion);
 
-            var row2 = db.Delete<Menu>().Where(x => x.ID == guid).Execute();
+            var row2 = db.Delete<Menu>(x => x.ID == guid);
 
             Console.WriteLine(row);
             Console.WriteLine(row2);
@@ -91,9 +91,9 @@ namespace Test
             };
             var db = Program.NewContext();
 
-            var row = db.Insert<Menu>(dic).Execute();
+            var row = db.Insert<Menu>(dic);
 
-            var row2 = db.Delete<Menu>().Where(x => x.ID == guid).Execute();
+            var row2 = db.Delete<Menu>(x => x.ID == guid);
 
             Console.WriteLine(row);
             Console.WriteLine(row2);

@@ -14,7 +14,7 @@ namespace XData.XBuilder
     /// ≤Â»Î√¸¡Ó
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public sealed class Insert<T> : SqlBuilber, IExecutable
+    internal sealed class Insert<T> : SqlBuilber, IExecutable
     {
         #region Fields
         private readonly Strings fieldString = new Strings();

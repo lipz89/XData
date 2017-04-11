@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -38,8 +39,8 @@ namespace Test
             var dic = db.GetByKey<Dictionary>(id);
             if (dic != null)
             {
-                db.Delete<Model>().Execute();
-                db.Delete<Dictionary>(dic).Execute();
+                db.Delete<Model>(null);
+                db.Delete<Dictionary>(dic);
             }
             dic = new Dictionary
             {
@@ -47,7 +48,7 @@ namespace Test
                 Name = "行政区域",
                 Code = "Area"
             };
-            db.Insert<Dictionary>(dic).Execute();
+            db.Insert<Dictionary>(dic);
         }
         [Test, Order(2)]
         public void AddDetails()
@@ -56,11 +57,11 @@ namespace Test
             details = DealDetails(details);
             var db = Program.NewContext();
 
-            db.Delete<Model>().Execute();
+            db.Delete<Model>(null);
 
             foreach (var detail in details)
             {
-                db.Insert<Model>(detail).Execute();
+                db.Insert<Model>(detail);
             }
 
             var count = db.Query<Model>().Count();
@@ -133,7 +134,11 @@ namespace Test
         {
             var id = Guid.Parse("E6E3763F-A8DF-491A-8CAC-191B228D7624");
             var db = Program.NewContext();
+            var st = Stopwatch.StartNew();
             var details = db.Query<Model>().Where(x => x.DictionaryID == id).ToList();
+
+            var time = st.ElapsedMilliseconds / 1000.0;
+            Console.WriteLine("查询{0}条数据，花费时间{1}秒", details.Count, time);
 
             var area86 = details.Where(x => x.ParentID == null).OrderBy(x => x.code).ToList();
 

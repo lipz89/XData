@@ -14,7 +14,7 @@ namespace XData.XBuilder
     /// 更新命令
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public sealed class Update<T> : SqlBuilber, IExecutable
+    internal sealed class Update<T> : SqlBuilber, IExecutable
     {
         #region Fields
         private bool _hasKeyWhere;
@@ -95,7 +95,41 @@ namespace XData.XBuilder
             AddConditionByKey(oldEntity, primaryKey);
         }
 
-        private void AddConditionByKey(T oldEntity, Expression<Func<T, object>> primaryKey)
+        /// <summary>
+        /// 根据实体构造一个更新命令
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="newEntity"></param>
+        /// <param name="primaryKey"></param>
+        internal Update(XContext context, T newEntity, Expression<Func<T, object>> primaryKey = null)
+            : this(context)
+        {
+            if (newEntity == null)
+            {
+                throw Error.ArgumentNullException(nameof(newEntity));
+            }
+
+            var columns = tableMeta.Columns.Where(x => x.CanUpdate).ToList();
+            foreach (var column in columns)
+            {
+                var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
+                if (memAccess != null)
+                {
+                    var newValue = memAccess(newEntity);
+                    this.setterString.Add(string.Format("{0}={1}",
+                        EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                    this._parameters.Add(newValue);
+                }
+            }
+            if (!this._parameters.Any())
+            {
+                throw Error.Exception("必须更新至少一个字段。");
+            }
+
+            AddConditionByKey(newEntity, primaryKey);
+        }
+
+        private void AddConditionByKey(T oldEntity, Expression<Func<T, object>> primaryKey = null)
         {
             var exp = tableMeta.Key?.Expression as LambdaExpression;
             if (exp == null && primaryKey != null)
@@ -110,9 +144,12 @@ namespace XData.XBuilder
                 var mem = exp.Body.ChangeType(keyExp.Type);
                 var newExp = Expression.Equal(mem, keyExp);
                 var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
-                this.where = new Where<T>(Context, this);
-                this.where.Add(lambda);
+                this.Where(lambda);
                 _hasKeyWhere = true;
+            }
+            else
+            {
+                throw Error.Exception("没有为类型 " + tableMeta.Type.Name + " 指定主键。");
             }
         }
 
@@ -121,9 +158,10 @@ namespace XData.XBuilder
         /// </summary>
         /// <param name="context"></param>
         /// <param name="newEntity"></param>
+        /// <param name="expression"></param>
         /// <param name="include">包含或者排除，true包含表示仅更新指定的字段，false排除表示不更新指定的字段</param>
         /// <param name="fields"></param>
-        internal Update(XContext context, T newEntity, bool include = false, params Expression<Func<T, object>>[] fields)
+        internal Update(XContext context, T newEntity, Expression<Func<T, bool>> expression, bool include, Expression<Func<T, object>>[] fields)
             : this(context)
         {
             if (newEntity == null)
@@ -150,8 +188,10 @@ namespace XData.XBuilder
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
-
-            AddConditionByKey(newEntity, null);
+            if (expression != null)
+            {
+                this.Where(expression);
+            }
         }
 
         /// <summary>
@@ -159,7 +199,8 @@ namespace XData.XBuilder
         /// </summary>
         /// <param name="context"></param>
         /// <param name="fieldValues"></param>
-        internal Update(XContext context, IDictionary<string, object> fieldValues)
+        /// <param name="expression"></param>
+        internal Update(XContext context, IDictionary<string, object> fieldValues, Expression<Func<T, bool>> expression)
             : this(context)
         {
             if (fieldValues.IsNullOrEmpty())
@@ -182,6 +223,10 @@ namespace XData.XBuilder
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
+            if (expression != null)
+            {
+                this.Where(expression);
+            }
         }
 
         #endregion
@@ -192,7 +237,7 @@ namespace XData.XBuilder
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
-        public Update<T> Where(Expression<Func<T, bool>> expression)
+        private Update<T> Where(Expression<Func<T, bool>> expression)
         {
             if (expression == null)
             {
@@ -205,39 +250,6 @@ namespace XData.XBuilder
             this.where = this.where ?? new Where<T>(Context, this);
             this.where.Add(expression);
             this._wherePart = null;
-            return this;
-        }
-        /// <summary>
-        /// 更新条件
-        /// </summary>
-        /// <param name="expression"></param>
-        /// <returns></returns>
-        public Update<T> WhereOr(Expression<Func<T, bool>> expression)
-        {
-            if (expression == null)
-            {
-                throw Error.ArgumentNullException(nameof(expression));
-            }
-            if (_hasKeyWhere)
-            {
-                throw Error.Exception("已经指定了主键列为Where条件。");
-            }
-            this.where = this.where ?? new Where<T>(Context, this);
-            this.where.AddOr(expression);
-            this._wherePart = null;
-            return this;
-        }
-        /// <summary>
-        /// 清除查询条件
-        /// </summary>
-        /// <returns></returns>
-        public Update<T> ClearWhere()
-        {
-            if (!this._hasKeyWhere)
-            {
-                this.where = null;
-                this._wherePart = null;
-            }
             return this;
         }
 

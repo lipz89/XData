@@ -248,52 +248,65 @@ namespace XData
         #region UpdateBuilder
 
         /// <summary>
-        /// 根据两个实体的比较构造一个更新命令,如果<paramref name="oldEntity"/>中没有指定主键，需要在命令后面指定where条件
+        /// 根据两个实体的比较更新数据库
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="oldEntity"></param>
-        /// <param name="newEntity"></param>
-        /// <param name="primaryKey"></param>
+        /// <param name="newEntity">该实体的字段为需要更新的字段</param>
         /// <returns></returns>
-        public Update<T> Update<T>(T oldEntity, T newEntity, Expression<Func<T, object>> primaryKey = null)
+        public bool Update<T>(T newEntity)
         {
-            return new Update<T>(this, oldEntity, newEntity, primaryKey);
+            return new Update<T>(this, newEntity).Execute() > 0;
         }
 
         /// <summary>
-        /// 根据一个实体构造一个更新命令,如果<paramref name="newEntity"/>中没有指定主键，需要在命令后面指定where条件
+        /// 根据两个实体的比较更新数据库
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="oldEntity">条件获取该实体中的主键</param>
+        /// <param name="newEntity">比较该实体和<paramref name="oldEntity"/>的字段得到需要更新的字段</param>
+        /// <returns></returns>
+        public bool Update<T>(T oldEntity, T newEntity)
+        {
+            return new Update<T>(this, oldEntity, newEntity).Execute() > 0;
+        }
+
+        /// <summary>
+        /// 根据一个实体一个条件更新满足条件的记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="newEntity"></param>
         /// <param name="include">包含或者排除，true包含表示仅更新指定的字段，false排除表示不更新指定的字段</param>
-        /// <param name="fields"></param>
+        /// <param name="fields">要更新或要排除的字段</param>
         /// <returns></returns>
-        public Update<T> Update<T>(T newEntity, bool include = false, params Expression<Func<T, object>>[] fields)
+        public bool Update<T>(T newEntity, bool include = false, params Expression<Func<T, object>>[] fields)
         {
-            return new Update<T>(this, newEntity, include, fields);
+            return new Update<T>(this, newEntity, null, include, fields).Execute() > 0;
         }
 
         /// <summary>
-        /// 根据指定实体构造一个更新指定字段的命令,如果<paramref name="newEntity"/>中没有指定主键，需要在命令后面指定where条件
+        /// 根据一个实体一个条件更新满足条件的记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="newEntity"></param>
-        /// <param name="fields"></param>
+        /// <param name="expression"></param>
+        /// <param name="include">包含或者排除，true包含表示仅更新指定的字段，false排除表示不更新指定的字段</param>
+        /// <param name="fields">要更新或要排除的字段</param>
         /// <returns></returns>
-        public Update<T> Update<T>(T newEntity, params Expression<Func<T, object>>[] fields)
+        public int Update<T>(T newEntity, Expression<Func<T, bool>> expression, bool include = false, params Expression<Func<T, object>>[] fields)
         {
-            return new Update<T>(this, newEntity, true, fields);
+            return new Update<T>(this, newEntity, expression, include, fields).Execute();
         }
 
         /// <summary>
-        /// 根据指定的字段值列字典构造一个更新命令,需要在命令后面指定where条件
+        /// 根据指定的字段值列字典更新满足条件的记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldValues"></param>
+        /// <param name="expression">条件为空更新所有记录</param>
         /// <returns></returns>
-        public Update<T> Update<T>(IDictionary<string, object> fieldValues)
+        public int Update<T>(IDictionary<string, object> fieldValues, Expression<Func<T, bool>> expression)
         {
-            return new Update<T>(this, fieldValues);
+            return new Update<T>(this, fieldValues, expression).Execute();
         }
 
         #endregion
@@ -301,50 +314,50 @@ namespace XData
         #region InsertBuilder
 
         /// <summary>
-        /// 根据指定的实体构造一个插入命令
+        /// 根据指定的实体插入一条记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public Insert<T> Insert<T>(T entity)
+        public bool Insert<T>(T entity)
         {
-            return new Insert<T>(this, entity);
+            return new Insert<T>(this, entity).Execute() > 0;
         }
 
         /// <summary>
-        /// 根据实体和指定的字段构造一个插入命令
+        /// 根据实体和指定的字段插入一条记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="entity"></param>
         /// <param name="fields"></param>
         /// <returns></returns>
-        public Insert<T> Insert<T>(T entity, params Expression<Func<T, object>>[] fields)
+        public bool Insert<T>(T entity, params Expression<Func<T, object>>[] fields)
         {
-            return new Insert<T>(this, entity, true, fields);
+            return new Insert<T>(this, entity, true, fields).Execute() > 0;
         }
 
         /// <summary>
-        /// 根据实体和指定的字段构造一个插入命令
+        /// 根据实体和指定的字段插入一条记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="entity"></param>
         /// <param name="include">包含或者排除，true包含表示仅插入指定的字段，false排除表示不插入指定的字段</param>
         /// <param name="fields"></param>
         /// <returns></returns>
-        public Insert<T> Insert<T>(T entity, bool include = false, params Expression<Func<T, object>>[] fields)
+        public bool Insert<T>(T entity, bool include = false, params Expression<Func<T, object>>[] fields)
         {
-            return new Insert<T>(this, entity, include, fields);
+            return new Insert<T>(this, entity, include, fields).Execute() > 0;
         }
 
         /// <summary>
-        /// 根据指定的字段和值构造一个插入命令
+        /// 根据指定的字段和值插入一条记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldValues"></param>
         /// <returns></returns>
-        public Insert<T> Insert<T>(IDictionary<string, object> fieldValues)
+        public bool Insert<T>(IDictionary<string, object> fieldValues)
         {
-            return new Insert<T>(this, fieldValues);
+            return new Insert<T>(this, fieldValues).Execute() > 0;
         }
 
         #endregion
@@ -352,25 +365,37 @@ namespace XData
         #region DeleteBuilder
 
         /// <summary>
-        /// 构造一个删除命令
+        /// 根据主键值删除一条记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="entity"></param>
-        /// <param name="primaryKey"></param>
+        /// <param name="primaryValue">主键值</param>
         /// <returns></returns>
-        public Delete<T> Delete<T>(T entity, Expression<Func<T, object>> primaryKey = null)
+        public bool Delete<T>(object primaryValue)
         {
-            return new Delete<T>(this, entity, primaryKey);
+            return new Delete<T>(this, primaryValue).Execute() > 0;
         }
 
         /// <summary>
-        /// 构造一个删除命令,需要在命令后面指定where条件
+        /// 删除一条记录
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <param name="entity">要删除的实体，根据该实体的主键删除</param>
+        /// <param name="primaryKey">主键表达式</param>
         /// <returns></returns>
-        public Delete<T> Delete<T>()
+        public bool Delete<T>(T entity, Expression<Func<T, object>> primaryKey = null)
         {
-            return new Delete<T>(this);
+            return new Delete<T>(this, entity, primaryKey).Execute() > 0;
+        }
+
+        /// <summary>
+        /// 根据条件删除记录
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        public int Delete<T>(Expression<Func<T, bool>> expression)
+        {
+            return new Delete<T>(this, expression).Execute();
         }
 
         #endregion

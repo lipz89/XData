@@ -23,21 +23,13 @@ namespace Test
     {
         static void Main(string[] args)
         {
-            var t = typeof(Dictionary<string, object>);
-            var ps = t.GetProperties();
-            var index = t.GetProperty("item");
-
-            var m = t.GetMethods();
-
-            //new TestDelete().Test();
-            //new TestInsert().Test();
+            new TestArea().TestToJson();
 
             Console.Read();
         }
 
         public const string SqlConnectionString = "data source=.;initial catalog=DMSP;user id=sa;password=111111;MultipleActiveResultSets=True";
-
-        public const string EntityString = @"Provider=System.Data.SqlClient;Metadata=res://*/;Provider Connection String= 'Data Source=.;Initial Catalog = DMSP;user id=sa;password=111111; Integrated Security = True; Connection Timeout = 60'";
+        
         public const string SqlProvider = "System.Data.SqlClient";
 
         public static XContext NewContext()

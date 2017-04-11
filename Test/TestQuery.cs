@@ -34,7 +34,7 @@ namespace Test
             var a = "鄂20160196";
             //var b = "粤20160402";
             var ss = new List<string> { "鄂20160196", "粤20160402", "苏20160297" };
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var query = db.Query<Supplier>().Where(x => ss.Contains(x.Code)).OrderBy(x => x.Name).Top(10);
 
             var sql = query.ToSql();
@@ -54,7 +54,7 @@ namespace Test
         public void TestLike()
         {
             string pattern = "__s%-[ds]%";
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var query = db.Query<Menu>().Where(x => x.Code.SqlLike(pattern)).ToList();
             Console.WriteLine(query.Count);
         }
@@ -62,7 +62,7 @@ namespace Test
         [Test]
         public void TestAggregate()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var query = db.Query<TestModel>();
 
             var count = query.Count();
@@ -94,7 +94,7 @@ namespace Test
         [Test]
         public void TestQueryPage()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var query = db.Query<TestModel>();
 
             var page = query.ToPage(2, 10);
@@ -107,7 +107,7 @@ namespace Test
         [Test]
         public void TestQueryIEnumerable()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var query = db.Query<TestModel>().Where(x => (x.Text + x.Text).Length < 20).Top(5);
 
             var enumer = query.ToList();
@@ -121,7 +121,7 @@ namespace Test
         [Test]
         public void TestOrder()
         {
-            var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
+            var db = Program.NewContext();
             var query = db.Query<TestModel>().Where(x => x.Index < 10).OrderBy(x => x.Index + 1);
             query.ToList();
         }
