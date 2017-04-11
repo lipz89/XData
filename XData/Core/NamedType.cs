@@ -6,10 +6,13 @@ using XData.XBuilder;
 
 namespace XData.Core
 {
+    /// <summary>
+    /// 命名类型
+    /// </summary>
     internal class NamedType
     {
         private string defaultSql;
-        private Cache<MemberInfo, string> cache = new Cache<MemberInfo, string>();
+        private readonly Cache<MemberInfo, string> cache = new Cache<MemberInfo, string>();
         public NamedType(Type type, string name)
         {
             Type = type;
@@ -17,6 +20,7 @@ namespace XData.Core
         }
         public Type Type { get; }
         public string Name { get; }
+
         public override int GetHashCode()
         {
             return this.Type.MetadataToken ^ this.Name.GetHashCode() ^ Constans.HashCodeXOr;
@@ -35,6 +39,7 @@ namespace XData.Core
         {
             this.cache.AddOrReplace(member, sql);
         }
+
         public void AddDefault(string sql)
         {
             defaultSql = sql;
@@ -57,10 +62,7 @@ namespace XData.Core
         {
             if (member != null)
             {
-                return cache.Get(member, () =>
-                                 {
-                                     return builber.EscapeSqlIdentifier(this.Name) + "." + builber.EscapeSqlIdentifier(member.Name);
-                                 });
+                return cache.Get(member, () => builber.EscapeSqlIdentifier(this.Name) + "." + builber.EscapeSqlIdentifier(member.Name));
             }
             return defaultSql;
         }

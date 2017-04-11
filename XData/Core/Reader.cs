@@ -7,6 +7,10 @@ using XData.Meta;
 
 namespace XData.Core
 {
+    /// <summary>
+    /// 数据读取器
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     internal class Reader<T> : IReader<T>
     {
         private readonly TableMeta tableMeta;
@@ -48,6 +52,7 @@ namespace XData.Core
             var omapper = Mappers.GetObjectMapper(tableMeta);
             return (T)omapper(dic);
         }
+
         private object IfDbNull(object obj)
         {
             return obj == DBNull.Value ? null : obj;

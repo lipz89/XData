@@ -1,23 +1,38 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Reflection;
 
 using XData.Common;
 
 namespace XData.Meta
 {
+    [DebuggerDisplay("Member:{Member}, Type:{Type}")]
     internal class MInfo
     {
-        public MInfo(MemberInfo member, Type caller)
+        #region Constructors
+
+        public MInfo(MemberInfo member, Type type)
         {
             Member = member;
-            Caller = caller;
+            Type = type;
         }
+
+        #endregion
+
+        #region Properties
+
         public MemberInfo Member { get; }
-        public Type Caller { get; }
+
+        public Type Type { get; }
+
+        #endregion
+
+        #region Override Object Methods
+
 
         public override int GetHashCode()
         {
-            return Caller.MetadataToken ^ Member.MetadataToken ^ Constans.HashCodeXOr;
+            return Type.MetadataToken ^ Member.MetadataToken ^ Constans.HashCodeXOr;
         }
 
         public override bool Equals(object obj)
@@ -26,8 +41,11 @@ namespace XData.Meta
             if (other == null)
                 return false;
 
-            return Caller.MetadataToken == other.Caller.MetadataToken
+            return Type.MetadataToken == other.Type.MetadataToken
                    && Member.MetadataToken == other.Member.MetadataToken;
         }
+
+        #endregion
+
     }
 }

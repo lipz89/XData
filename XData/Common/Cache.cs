@@ -3,6 +3,11 @@ using System.Collections.Generic;
 
 namespace XData.Common
 {
+    /// <summary>
+    /// 用字典模拟简单缓存
+    /// </summary>
+    /// <typeparam name="TKey"></typeparam>
+    /// <typeparam name="TValue"></typeparam>
     internal class Cache<TKey, TValue> : Dictionary<TKey, TValue>
     {
         public TValue Get(TKey key, Func<TValue> creator)

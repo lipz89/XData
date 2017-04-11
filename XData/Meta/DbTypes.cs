@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using XData.Common;
 using XData.Extentions;
 
 namespace XData.Meta
@@ -48,6 +47,7 @@ namespace XData.Meta
         {
             return Types.Contains(type.NonNullableType());
         }
+
         public static bool IsSimpleType(Type type)
         {
             return DbTypes.ContainsType(type) && type != typeof(object);

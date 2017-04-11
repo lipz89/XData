@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 
 using XData.Common;
 using XData.Core;
@@ -18,7 +17,13 @@ namespace XData.XBuilder
     /// <typeparam name="T"></typeparam>
     internal class ComplexQuery<TInner, T> : Query<T>
     {
-        private Expression<Func<TInner, T>> selector;
+        #region Fields
+        private readonly Query<TInner> innerQuery;
+        private readonly Expression<Func<TInner, T>> selector;
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// 内部数据提供者
         /// </summary>
@@ -30,10 +35,26 @@ namespace XData.XBuilder
             }
         }
 
-        /// <summary>
-        /// 内部数据提供者
-        /// </summary>
-        private Query<TInner> innerQuery;
+        public override IReadOnlyList<object> Parameters
+        {
+            get
+            {
+                var ps = this._parameters.ToList();
+                if (this.innerQuery != null)
+                {
+                    ps.AddRange(this.innerQuery.Parameters);
+                }
+                if (this.where != null)
+                {
+                    ps.AddRange(this.where._parameters);
+                }
+                return ps.AsReadOnly();
+            }
+        }
+
+        #endregion
+
+        #region Constuctors
 
         /// <summary>
         /// 构造一个复合查询
@@ -57,22 +78,9 @@ namespace XData.XBuilder
             this.InitFieldsPart();
         }
 
-        public override IReadOnlyList<object> Parameters
-        {
-            get
-            {
-                var ps = this._parameters.ToList();
-                if (this.innerQuery != null)
-                {
-                    ps.AddRange(this.innerQuery.Parameters);
-                }
-                if (this.where != null)
-                {
-                    ps.AddRange(this.where._parameters);
-                }
-                return ps.AsReadOnly();
-            }
-        }
+        #endregion
+
+        #region Override Query<T> Methods
 
         protected override string GetTableNameOrInnerSql()
         {
@@ -99,5 +107,7 @@ namespace XData.XBuilder
             }
             return _fieldsPart;
         }
+
+        #endregion
     }
 }

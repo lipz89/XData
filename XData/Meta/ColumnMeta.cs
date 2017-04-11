@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -11,20 +10,53 @@ namespace XData.Meta
     [DebuggerDisplay("ColumnName:{ColumnName}, Member:{Member}")]
     internal class ColumnMeta
     {
-        private MInfo minfo;
+        #region Fields
+
+        #endregion
+
+        #region Constructors
+
         public ColumnMeta(MInfo member)
         {
-            TableType = member.Caller;
-            minfo = member;
+            TableType = member.Type;
+            Member = member.Member;
         }
-        public MemberInfo Member
+
+        public ColumnMeta(MemberInfo member, Type type)
         {
-            get { return minfo.Member; }
+            Member = member;
+            TableType = type;
         }
+
+        #endregion
+
+        #region Properties
+
+        public MemberInfo Member { get; }
+
+        public Type TableType { get; }
+
         public string ColumnName { get; internal set; }
+
         public string Name
         {
             get { return Member?.Name; }
+        }
+
+        public Type Type
+        {
+            get
+            {
+                if (Member is PropertyInfo)
+                {
+                    return (Member as PropertyInfo).PropertyType;
+                }
+                if (Member is FieldInfo)
+                {
+                    return (Member as FieldInfo).FieldType;
+                }
+                return null;
+            }
         }
 
         public bool CanUpdate
@@ -44,6 +76,7 @@ namespace XData.Meta
                 return true;
             }
         }
+
         public bool CanInsert
         {
             get
@@ -59,22 +92,9 @@ namespace XData.Meta
 
         public Expression Expression { get; internal set; }
 
-        public Type TableType { get; private set; }
-        public Type Type
-        {
-            get
-            {
-                if (Member is PropertyInfo)
-                {
-                    return (Member as PropertyInfo).PropertyType;
-                }
-                if (Member is FieldInfo)
-                {
-                    return (Member as FieldInfo).FieldType;
-                }
-                return null;
-            }
-        }
+        #endregion
+
+        #region Methods
 
         public void SetValue(object target, object value)
         {
@@ -87,6 +107,7 @@ namespace XData.Meta
                 (Member as FieldInfo).SetValue(target, value);
             }
         }
+
         public object GetValue(object target)
         {
             if (Member is PropertyInfo)
@@ -99,6 +120,7 @@ namespace XData.Meta
             }
             return null;
         }
+
         public bool CanWrite()
         {
             if (Member is PropertyInfo)
@@ -112,9 +134,13 @@ namespace XData.Meta
             return false;
         }
 
+        #endregion
+
+        #region Override Object Methods
+
         public override int GetHashCode()
         {
-            return this.Member.GetHashCode() ^ Constans.HashCodeXOr;
+            return this.Member.MetadataToken ^ this.TableType.MetadataToken ^ Constans.HashCodeXOr;
         }
 
         public override bool Equals(object obj)
@@ -125,5 +151,7 @@ namespace XData.Meta
             }
             return false;
         }
+
+        #endregion
     }
 }

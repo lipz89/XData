@@ -2,6 +2,9 @@
 
 namespace XData.Common
 {
+    /// <summary>
+    /// 异常
+    /// </summary>
     internal static class Error
     {
         public static Exception ArgumentNullException(string name)

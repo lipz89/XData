@@ -14,11 +14,18 @@ namespace XData.Meta
     /// </summary>
     public static class MapperConfig
     {
+        #region 静态字段
+
         private static readonly Dictionary<Type, string> TableNames = new Dictionary<Type, string>();
         private static readonly Dictionary<Type, ColumnMeta> TableKeys = new Dictionary<Type, ColumnMeta>();
         private static readonly Dictionary<MInfo, string> ColumnNames = new Dictionary<MInfo, string>();
         private static readonly List<MInfo> IgnoreColumns = new List<MInfo>();
         private static readonly Dictionary<Type, MInfo> TableIdentities = new Dictionary<Type, MInfo>();
+
+        #endregion
+
+        #region 配置方法
+
         /// <summary>
         /// 配置模型对应的表名
         /// </summary>
@@ -28,6 +35,7 @@ namespace XData.Meta
         {
             HasTableName(typeof(T), tableName);
         }
+
         internal static void HasTableName(Type type, string tableName)
         {
             if (tableName.IsNullOrWhiteSpace())
@@ -85,58 +93,6 @@ namespace XData.Meta
             else
             {
                 throw Error.ArgumentException("指定表达式不是属性或字段。", nameof(property));
-            }
-        }
-
-        /// <summary>
-        /// 忽略成员
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="property"></param>
-        public static void IgnoreColumn<T>(Expression<Func<T, object>> property)
-        {
-            if (property == null)
-            {
-                throw Error.ArgumentNullException(nameof(property));
-            }
-            var mi = property.GetMember();
-            if (mi == null)
-            {
-                throw Error.ArgumentException("指定表达式不是成员访问类型。", nameof(property));
-            }
-            if (mi.MemberType == MemberTypes.Field || mi.MemberType == MemberTypes.Property)
-            {
-                var m = new MInfo(mi, typeof(T));
-                if (TableKeys.Values.Any(x => x.Member == mi))
-                {
-                    throw Error.ArgumentException("属性已经配置为主键，不能忽略。", nameof(property));
-                }
-                if (ColumnNames.ContainsKey(m))
-                {
-                    throw Error.ArgumentException("属性已经配置字段名:" + ColumnNames[m] + "。", nameof(property));
-                }
-                if (!IgnoreColumns.Contains(m))
-                {
-                    IgnoreColumns.Add(m);
-                }
-            }
-            else
-            {
-                throw Error.ArgumentException("指定表达式不是属性或字段。", nameof(property));
-            }
-        }
-
-        /// <summary>
-        /// 忽略成员
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="properties"></param>
-        public static void IgnoreColumn<T>(params Expression<Func<T, object>>[] properties)
-            where T : class
-        {
-            foreach (var property in properties)
-            {
-                IgnoreColumn(property);
             }
         }
 
@@ -201,6 +157,75 @@ namespace XData.Meta
                 TableIdentities.Add(type, m);
             }
         }
+
+        /// <summary>
+        /// 配置自增列的主键
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="property"></param>
+        /// <param name="columnName"></param>
+        public static void HasKeyAndIdentity<T>(Expression<Func<T, object>> property, string columnName = null)
+        {
+            HasKey(property, columnName);
+            HasIdentity(property);
+        }
+
+        /// <summary>
+        /// 忽略成员
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="property"></param>
+        public static void IgnoreColumn<T>(Expression<Func<T, object>> property)
+        {
+            if (property == null)
+            {
+                throw Error.ArgumentNullException(nameof(property));
+            }
+            var mi = property.GetMember();
+            if (mi == null)
+            {
+                throw Error.ArgumentException("指定表达式不是成员访问类型。", nameof(property));
+            }
+            if (mi.MemberType == MemberTypes.Field || mi.MemberType == MemberTypes.Property)
+            {
+                var m = new MInfo(mi, typeof(T));
+                if (TableKeys.Values.Any(x => x.Member == mi))
+                {
+                    throw Error.ArgumentException("属性已经配置为主键，不能忽略。", nameof(property));
+                }
+                if (ColumnNames.ContainsKey(m))
+                {
+                    throw Error.ArgumentException("属性已经配置字段名:" + ColumnNames[m] + "。", nameof(property));
+                }
+                if (!IgnoreColumns.Contains(m))
+                {
+                    IgnoreColumns.Add(m);
+                }
+            }
+            else
+            {
+                throw Error.ArgumentException("指定表达式不是属性或字段。", nameof(property));
+            }
+        }
+
+        /// <summary>
+        /// 忽略成员
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="properties"></param>
+        public static void IgnoreColumn<T>(params Expression<Func<T, object>>[] properties)
+            where T : class
+        {
+            foreach (var property in properties)
+            {
+                IgnoreColumn(property);
+            }
+        }
+
+        #endregion
+
+        #region 取配置方法
+
         /// <summary>
         /// 返回模型对应的表名
         /// </summary>
@@ -210,6 +235,7 @@ namespace XData.Meta
         {
             return GetTableName(typeof(T));
         }
+
         /// <summary>
         /// 返回模型对应的表名
         /// </summary>
@@ -223,6 +249,7 @@ namespace XData.Meta
             }
             return type.Name;
         }
+
         /// <summary>
         /// 返回模型对应的字段名
         /// </summary>
@@ -263,6 +290,7 @@ namespace XData.Meta
             }
             return memberInfo.Name;
         }
+
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
@@ -272,6 +300,7 @@ namespace XData.Meta
         {
             return GetKey(typeof(T));
         }
+
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
@@ -285,6 +314,7 @@ namespace XData.Meta
             }
             return string.Empty;
         }
+
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
@@ -293,6 +323,7 @@ namespace XData.Meta
         {
             return GetKeyMeta(typeof(T));
         }
+
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
@@ -306,6 +337,7 @@ namespace XData.Meta
             }
             return null;
         }
+
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
@@ -314,6 +346,7 @@ namespace XData.Meta
         {
             return GetIdentities(typeof(T));
         }
+
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
@@ -364,5 +397,7 @@ namespace XData.Meta
             var m = new MInfo(memberInfo, type);
             return IgnoreColumns.Contains(m);
         }
+
+        #endregion
     }
 }

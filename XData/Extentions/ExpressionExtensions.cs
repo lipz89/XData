@@ -32,6 +32,7 @@ namespace XData.Extentions
             }
             return null;
         }
+
         public static string GetPropertyName<T, TProperty>(this Expression<Func<T, TProperty>> expression)
         {
             if (expression == null)

@@ -29,7 +29,7 @@ namespace Test
             MapperConfig.HasColumnName<Model>(x => x.memo, "Memo");
             MapperConfig.IgnoreColumn<Model>(x => x.pcode);
         }
-        [Test]
+        [Test, Order(1)]
         public void AddDictionary()
         {
             var id = Guid.Parse("E6E3763F-A8DF-491A-8CAC-191B228D7624");
@@ -38,6 +38,7 @@ namespace Test
             var dic = db.GetByKey<Dictionary>(id);
             if (dic != null)
             {
+                db.Delete<Model>().Execute();
                 db.Delete<Dictionary>(dic).Execute();
             }
             dic = new Dictionary
@@ -48,7 +49,7 @@ namespace Test
             };
             db.Insert<Dictionary>(dic).Execute();
         }
-        [Test]
+        [Test, Order(2)]
         public void AddDetails()
         {
             var details = LoadDetails();
@@ -127,7 +128,7 @@ namespace Test
             return result.OrderBy(x => x.IndexID).ToList();
         }
 
-        [Test]
+        [Test, Order(3)]
         public void TestToJson()
         {
             var id = Guid.Parse("E6E3763F-A8DF-491A-8CAC-191B228D7624");

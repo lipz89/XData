@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 
 using XData.Common;
-using XData.Meta;
 
 namespace XData.XBuilder
 {

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Linq.Expressions;
-
-using XData.XBuilder;
 
 namespace XData.Core.ExpressionVisitors
 {
@@ -12,7 +9,7 @@ namespace XData.Core.ExpressionVisitors
     internal class ParameterReplaceVisitor : ExpressionVisitor
     {
         #region Fields
-        private ParameterExpression[] parameters;
+        private readonly ParameterExpression[] parameters;
         #endregion
 
         #region Constuctors

@@ -6,6 +6,9 @@ using XData.Core;
 
 namespace XData.Common
 {
+    /// <summary>
+    /// 常量和常用静态数据
+    /// </summary>
     internal static class Constans
     {
         static Constans()
@@ -21,6 +24,10 @@ namespace XData.Common
             DictionaryIndex = typeof(Dictionary<string, object>).GetProperty("Item");
         }
 
+        public const int HashCodeXOr = 0x01010101;
+
+        #region 方法名标记
+
         public const string StringContains = "StringContains";
         public const string StringStartsWith = "StringStartsWith";
         public const string StringEndsWith = "StringEndsWith";
@@ -28,7 +35,9 @@ namespace XData.Common
         public const string EnumerableContains = "EnumerableContains";
         public const string ObjectEquals = "ObjectEquals";
 
-        public const int HashCodeXOr = 0x01010101;
+        #endregion
+
+        #region 方法
 
         public static readonly MethodInfo MethodStringContains;
         public static readonly MethodInfo MethodStringStartsWith;
@@ -39,6 +48,8 @@ namespace XData.Common
         public static readonly MethodInfo MethodObjectEquals;
         public static readonly MethodInfo DictionaryContainsKey;
         public static readonly PropertyInfo DictionaryIndex;
+
+        #endregion
 
         public static bool IsListContains(MethodInfo method)
         {

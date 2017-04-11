@@ -13,105 +13,27 @@ namespace XData.Extentions
 {
     internal static class ReflectionExtensions
     {
-        public static string ObtainOriginalName(this Type type)
-        {
-            if (simpleName.ContainsKey(type))
-            {
-                return simpleName[type];
-            }
-            return type.ObtainOriginalNameCore();
-        }
-        private static string ObtainOriginalNameCore(this Type type)
-        {
-            if (type.IsArray)
-            {
-                var n = type.Name;
-                var etype = type.GetElementType();
-                return n.Replace(etype.Name, etype.ObtainOriginalName());
-            }
-            if (type.IsGenericType)
-            {
-                var gt = ExtractName(type.FullName);
-                var gtp = ExtractGenericArguments(type.GetGenericArguments());
-                if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
-                {
-                    return gtp + "?";
-                }
-                return gt + "<" + gtp + ">";
-            }
-            return type.FullName;
-        }
-        public static string GetGenericName(this Type type)
-        {
-            if (type.IsGenericType)
-            {
-                return ExtractName(type.Name);
-            }
-            return string.Empty;
-        }
-        private static string ExtractName(string name)
-        {
-            int length = name.IndexOf("`", StringComparison.Ordinal);
-            if (length > 0)
-            {
-                name = name.Substring(0, length);
-            }
-            return name;
-        }
-        private static string ExtractGenericArguments(this IEnumerable<Type> names)
-        {
-            StringBuilder builder = new StringBuilder();
-            foreach (Type type in names)
-            {
-                if (builder.Length > 1)
-                {
-                    builder.Append(", ");
-                }
-                builder.Append(type.ObtainOriginalName());
-            }
-            return builder.ToString();
-        }
-        public static string ObtainOriginalMethodName(this MethodInfo method)
-        {
-            if (!method.IsGenericMethod)
-            {
-                return method.Name;
-            }
-            return ExtractName(method.Name) + "<" + ExtractGenericArguments(method.GetGenericArguments()) + ">";
-        }
-
-        private static readonly Dictionary<Type, string> simpleName = new Dictionary<Type, string>
-        {
-            { typeof(object), "object"},
-            { typeof(string), "string"},
-            { typeof(bool), "bool"},
-            { typeof(char) ,"char"},
-            { typeof(int), "int"},
-            { typeof(uint), "uint"},
-            { typeof(byte), "byte"},
-            { typeof(sbyte), "sbyte"},
-            { typeof(short), "short"},
-            { typeof(ushort), "ushort"},
-            { typeof(long), "long"},
-            { typeof(ulong), "ulong"},
-            { typeof(float), "float"},
-            { typeof(double), "double"},
-            { typeof(decimal), "decimal"}
-        };
+        #region 一般类型判断
 
         public static bool IsNullable(this Type type)
         {
             return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
         }
+
         public static Type NonNullableType(this Type type)
         {
             return type.IsNullable() ? Nullable.GetUnderlyingType(type) : type;
         }
+
         public static bool IsIntegralType(this Type t)
         {
             var tc = Type.GetTypeCode(t);
             return tc >= TypeCode.SByte && tc <= TypeCode.UInt64;
         }
+
+        #endregion
+
+        #region 枚举器类型判断
 
         public static Type GetItemType(this Type type)
         {
@@ -145,6 +67,11 @@ namespace XData.Extentions
         {
             return type.HasInterfaceOf(typeof(IEnumerable<>));
         }
+
+        #endregion
+
+        #region 接口判断
+
         public static bool HasInterface(this Type type, Type interfaceType)
         {
             if (!interfaceType.IsInterface)
@@ -153,11 +80,13 @@ namespace XData.Extentions
             }
             return interfaceType.IsAssignableFrom(type);
         }
+
         public static bool HasInterface<T>(this Type type)
         {
             return type.HasInterface(typeof(T));
         }
-        public static bool HasInterfaceOf(this Type type, Type interfaceType, List<Type> genericTypes = null)
+
+        public static bool HasInterfaceOf(this Type type, Type interfaceType, List<Type> genericArgumentTypes = null)
         {
             if (!interfaceType.IsInterface)
             {
@@ -172,48 +101,19 @@ namespace XData.Extentions
 
             if (its != null)
             {
-                if (genericTypes != null)
+                if (genericArgumentTypes != null)
                 {
-                    genericTypes.Clear();
-                    genericTypes.AddRange(its.GetGenericArguments());
+                    genericArgumentTypes.Clear();
+                    genericArgumentTypes.AddRange(its.GetGenericArguments());
                 }
                 return true;
             }
             return false;
         }
 
-        public static bool IsAssignableFromOneOf(this Type type, IEnumerable<Type> types, out Type outType)
-        {
-            foreach (var t in types)
-            {
-                if (type.IsAssignableFrom(t))
-                {
-                    outType = t;
-                    return true;
-                }
-            }
-            outType = null;
-            return false;
-        }
+        #endregion
 
-
-        public static Expression<Func<T, object>> GetMemberAccess<T>(this MemberInfo memberInfo)
-        {
-            var type = typeof(T);
-            if (memberInfo.DeclaringType == null || !memberInfo.DeclaringType.IsAssignableFrom(type))
-            {
-                throw Error.ArgumentException("类型" + type.Name + "不包含指定的成员。", nameof(memberInfo));
-            }
-            if (memberInfo.MemberType != MemberTypes.Field && memberInfo.MemberType != MemberTypes.Property)
-            {
-                throw Error.ArgumentException("指定的成员不是字段或属性。", nameof(memberInfo));
-            }
-            var instance = Expression.Parameter(typeof(T));
-            var member = Expression.MakeMemberAccess(instance, memberInfo);
-            return Expression.Lambda<Func<T, object>>(Expression.Convert(member, typeof(object)), instance);
-        }
-
-        #region Anonymous
+        #region 匿名类型判断
 
         public static bool IsAnonymousType(this Type type)
         {
@@ -239,20 +139,46 @@ namespace XData.Extentions
 
         #endregion
 
+        #region 默认构造函数
+
         public static bool HasDefaultCtor(this Type type)
         {
             return type.GetConstructor(Type.EmptyTypes) != null;
         }
+
         public static ConstructorInfo GetDefaultCtor(this Type type)
         {
             return type.GetConstructor(Type.EmptyTypes);
         }
 
+        #endregion
+
+        /// <summary>
+        /// 取类型的默认值，即default(T)的值
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public static object GetDefaultValue(this Type type)
         {
             var exp = Expression.Default(type);
             var lambda = Expression.Lambda(exp);
             return lambda.Compile().DynamicInvoke();
+        }
+
+        public static Expression<Func<T, object>> GetMemberAccess<T>(this MemberInfo memberInfo)
+        {
+            var type = typeof(T);
+            if (memberInfo.DeclaringType == null || !memberInfo.DeclaringType.IsAssignableFrom(type))
+            {
+                throw Error.ArgumentException("类型" + type.Name + "不包含指定的成员。", nameof(memberInfo));
+            }
+            if (memberInfo.MemberType != MemberTypes.Field && memberInfo.MemberType != MemberTypes.Property)
+            {
+                throw Error.ArgumentException("指定的成员不是字段或属性。", nameof(memberInfo));
+            }
+            var instance = Expression.Parameter(typeof(T));
+            var member = Expression.MakeMemberAccess(instance, memberInfo);
+            return Expression.Lambda<Func<T, object>>(Expression.Convert(member, typeof(object)), instance);
         }
     }
 }

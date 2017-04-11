@@ -122,7 +122,7 @@ namespace Test
         public void TestOrder()
         {
             var db = new XContext(Program.SqlConnectionString, Program.SqlProvider);
-            var query = db.Query<TestModel>().Where(x => x.Index < 10).OrderBy(x => x.Index+1);
+            var query = db.Query<TestModel>().Where(x => x.Index < 10).OrderBy(x => x.Index + 1);
             query.ToList();
         }
 
@@ -134,7 +134,7 @@ namespace Test
             Console.WriteLine(JsonConvert.SerializeObject(q));
 
 
-            var q2 = db.GetByKey<TestModel>(100,x=>x.ID);
+            var q2 = db.GetByKey<TestModel>(100, x => x.ID);
             Console.WriteLine(JsonConvert.SerializeObject(q2));
 
             var q3 = db.GetByKey<TestModel>(40);

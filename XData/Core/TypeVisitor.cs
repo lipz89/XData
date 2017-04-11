@@ -6,6 +6,9 @@ using XData.Meta;
 
 namespace XData.Core
 {
+    /// <summary>
+    /// 命名类型访问器
+    /// </summary>
     internal class TypeVisitor
     {
         internal readonly List<NamedType> typeNames = new List<NamedType>();
