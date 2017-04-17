@@ -133,6 +133,21 @@ namespace XData
             }
             return result;
         }
+
+        private DbConnection GetConnection()
+        {
+            return Transaction?.Connection ?? this.CreateConnection();
+        }
+
+        private void CloseConnectionOrNot(DbConnection dbConnection)
+        {
+            if (dbConnection != null && dbConnection.State != ConnectionState.Closed && Transaction == null)
+            {
+                dbConnection.Close();
+                dbConnection.Dispose();
+            }
+        }
+
         #endregion
 
         #region Parameters
@@ -237,7 +252,7 @@ namespace XData
         public int ExecuteNonQuery(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             int result = 0;
-            DbConnection dbConnection = Transaction?.Connection ?? this.CreateConnection();
+            DbConnection dbConnection = GetConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
@@ -267,11 +282,7 @@ namespace XData
                 }
                 finally
                 {
-                    if (dbConnection.State != ConnectionState.Closed && Transaction == null)
-                    {
-                        dbConnection.Close();
-                        dbConnection.Dispose();
-                    }
+                    CloseConnectionOrNot(dbConnection);
                 }
             }
 
@@ -292,7 +303,7 @@ namespace XData
                 Transaction = new XTransaction(this);
                 flagNewTransaction = true;
             }
-            DbConnection dbConnection = Transaction?.Connection ?? this.CreateConnection();
+            DbConnection dbConnection = GetConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
@@ -328,10 +339,7 @@ namespace XData
                 }
                 finally
                 {
-                    if (dbConnection.State != ConnectionState.Closed && !flagNewTransaction)
-                    {
-                        dbConnection.Close();
-                    }
+                    CloseConnectionOrNot(dbConnection);
                 }
             }
 
@@ -383,7 +391,7 @@ namespace XData
         public object ExecuteScalar(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             object result = null;
-            DbConnection dbConnection = Transaction?.Connection ?? this.CreateConnection();
+            DbConnection dbConnection = GetConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
@@ -413,10 +421,7 @@ namespace XData
                 }
                 finally
                 {
-                    if (dbConnection.State != ConnectionState.Closed && Transaction == null)
-                    {
-                        dbConnection.Close();
-                    }
+                    CloseConnectionOrNot(dbConnection);
                 }
             }
 
@@ -468,42 +473,43 @@ namespace XData
         public DataSet GetDataSet(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             DataSet dataSet = new DataSet();
-            using (DbConnection dbConnection = this.CreateConnection())
+            DbConnection dbConnection = GetConnection();
+            using (DbCommand dbCommand = this.CreateCommand())
             {
-                using (DbCommand dbCommand = this.CreateCommand())
+                dbCommand.Connection = dbConnection;
+                dbCommand.Transaction = Transaction?.Transaction;
+                dbCommand.CommandType = commandType;
+                dbCommand.CommandText = sql;
+                if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Connection = dbConnection;
-                    dbCommand.CommandType = commandType;
-                    dbCommand.CommandText = sql;
-                    if (!parameters.IsNullOrEmpty())
-                    {
-                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
-                    }
+                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                }
 
-                    var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
-                    using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
+                var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
+                {
+                    dbDataAdapter.SelectCommand = dbCommand;
+                    try
                     {
-                        dbDataAdapter.SelectCommand = dbCommand;
-                        try
+                        dbDataAdapter.Fill(dataSet);
+                        this.Log(LogLevel.Information, string.Format("SQL语句执行GetDataSet成功！{0}{1}", Environment.NewLine, log), null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Transaction?.AddException(ex);
+                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
+                        this.Log(LogLevel.Error, message, ex);
+                        throw;
+                    }
+                    for (int j = 0; j < dataSet.Tables.Count; j++)
+                    {
+                        if (string.IsNullOrWhiteSpace(dataSet.Tables[j].TableName))
                         {
-                            dbDataAdapter.Fill(dataSet);
-                            this.Log(LogLevel.Information, string.Format("SQL语句执行GetDataSet成功！{0}{1}", Environment.NewLine, log), null);
-                        }
-                        catch (Exception ex)
-                        {
-                            string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                            this.Log(LogLevel.Error, message, ex);
-                            throw;
-                        }
-                        for (int j = 0; j < dataSet.Tables.Count; j++)
-                        {
-                            if (string.IsNullOrWhiteSpace(dataSet.Tables[j].TableName))
-                            {
-                                dataSet.Tables[j].TableName = string.Format("Table{0}", j);
-                            }
+                            dataSet.Tables[j].TableName = string.Format("Table{0}", j);
                         }
                     }
                 }
+                CloseConnectionOrNot(dbConnection);
             }
             return dataSet;
         }
@@ -553,155 +559,43 @@ namespace XData
         public DataTable GetDataTable(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             DataTable dataTable = new DataTable();
-            using (DbConnection dbConnection = this.CreateConnection())
+            DbConnection dbConnection = GetConnection();
+            using (DbCommand dbCommand = this.CreateCommand())
             {
-                using (DbCommand dbCommand = this.CreateCommand())
+                dbCommand.Connection = dbConnection;
+                dbCommand.Transaction = Transaction?.Transaction;
+                dbCommand.CommandType = commandType;
+                dbCommand.CommandText = sql;
+                if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Connection = dbConnection;
-                    dbCommand.CommandType = commandType;
-                    dbCommand.CommandText = sql;
-                    if (!parameters.IsNullOrEmpty())
-                    {
-                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
-                    }
+                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                }
 
-                    using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
+                using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
+                {
+                    dbDataAdapter.SelectCommand = dbCommand;
+                    var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                    try
                     {
-                        dbDataAdapter.SelectCommand = dbCommand;
-                        var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
-                        try
-                        {
-                            dbDataAdapter.Fill(dataTable);
-                            this.Log(LogLevel.Information, string.Format("SQL语句执行GetDataTable成功！{0}{1}", Environment.NewLine, log), null);
-                        }
-                        catch (Exception ex)
-                        {
-                            string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                            this.Log(LogLevel.Error, message, ex);
-                            throw;
-                        }
-                        if (string.IsNullOrWhiteSpace(dataTable.TableName))
-                        {
-                            dataTable.TableName = "Table1";
-                        }
+                        dbDataAdapter.Fill(dataTable);
+                        this.Log(LogLevel.Information, string.Format("SQL语句执行GetDataTable成功！{0}{1}", Environment.NewLine, log), null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Transaction?.AddException(ex);
+                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
+                        this.Log(LogLevel.Error, message, ex);
+                        throw;
+                    }
+                    if (string.IsNullOrWhiteSpace(dataTable.TableName))
+                    {
+                        dataTable.TableName = "Table1";
                     }
                 }
+                CloseConnectionOrNot(dbConnection);
             }
             return dataTable;
         }
-
-        /* 执行三步递交的存储过程
-        /// <summary>
-        /// 执行三步递交的存储过程
-        /// </summary>
-        /// <param name="sqls">执行存储过程的SQL字符串数组</param>
-        /// <param name="msg">返回的提示信息</param>
-        /// <returns>返回是否执行成功</returns>
-        public bool ExecuteThreeStepProcedure(IList<string> sqls, out string msg)
-        {
-            bool result = true;
-            msg = "T";
-            using (DbConnection dbConnection = this.CreateConnection())
-            {
-                using (DbCommand dbCommand = this.CreateCommand())
-                {
-                    dbCommand.Connection = dbConnection;
-                    dbCommand.CommandType = CommandType.Text;
-                    using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
-                    {
-                        dbDataAdapter.SelectCommand = dbCommand;
-                        try
-                        {
-                            dbConnection.Open();
-                            for (int i = 0; i < sqls.Count; i++)
-                            {
-                                DataTable dataTable = new DataTable();
-                                dbCommand.CommandText = sqls[i];
-                                dbDataAdapter.Fill(dataTable);
-                                if (i == 0)
-                                {
-                                    if (dataTable.Rows.Count > 0 && dataTable.Rows[0][0].ToString().Trim() == "F")
-                                    {
-                                        if (dataTable.Columns.Count > 1 && !string.IsNullOrWhiteSpace(dataTable.Rows[0][1].ToString().Trim()))
-                                        {
-                                            msg = string.Format("第一步 {0}", dataTable.Rows[0][1].ToString().Trim());
-                                        }
-                                        else
-                                        {
-                                            msg = "第一步 执行存储过程意外出错！";
-                                        }
-                                        result = false;
-                                        break;
-                                    }
-                                    this.Log(LogLevel.Information, string.Format("三步递交第一步执行成功！{0}SQL:{1}", Environment.NewLine, dbCommand.CommandText), null);
-                                }
-                                else if (i > 0 && i < sqls.Count - 1)
-                                {
-                                    if (dataTable.Rows.Count > 0 && dataTable.Rows[0][0].ToString().Trim() == "F")
-                                    {
-                                        if (dataTable.Columns.Count > 1 && !string.IsNullOrWhiteSpace(dataTable.Rows[0][1].ToString().Trim()))
-                                        {
-                                            msg = string.Format("第二步 {0}", dataTable.Rows[0][1].ToString().Trim());
-                                        }
-                                        else
-                                        {
-                                            msg = "第二步 执行存储过程意外出错！";
-                                        }
-                                        result = false;
-                                        break;
-                                    }
-                                    this.Log(LogLevel.Information, string.Format("三步递交第二步执行成功！{0}SQL:{1}", Environment.NewLine, dbCommand.CommandText), null);
-                                }
-                                else
-                                {
-                                    if (dataTable.Rows.Count > 0)
-                                    {
-                                        if (dataTable.Rows[0][0].ToString().Trim() == "F")
-                                        {
-                                            if (dataTable.Columns.Count > 1 && !string.IsNullOrWhiteSpace(dataTable.Rows[0][1].ToString().Trim()))
-                                            {
-                                                msg = string.Format("第三步 {0}", dataTable.Rows[0][1].ToString().Trim());
-                                            }
-                                            else
-                                            {
-                                                msg = "第三步 执行存储过程意外出错！";
-                                            }
-                                            result = false;
-                                            break;
-                                        }
-                                        if (dataTable.Columns.Count > 1 && !string.IsNullOrWhiteSpace(dataTable.Rows[0][1].ToString().Trim()))
-                                        {
-                                            msg = dataTable.Rows[0][1].ToString().Trim();
-                                        }
-                                    }
-                                    this.Log(LogLevel.Information, string.Format("三步递交第三步执行成功！{0}SQL:{1}", Environment.NewLine, dbCommand.CommandText), null);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            List<string> list = new List<string>();
-                            list.Add("执行三步递交的存储过程失败！");
-                            foreach (string current in sqls)
-                            {
-                                list.Add(current);
-                            }
-                            this.Log(LogLevel.Error, string.Join("\r\n", list), ex);
-                            throw;
-                        }
-                        finally
-                        {
-                            if (dbConnection.State != ConnectionState.Closed)
-                            {
-                                dbConnection.Close();
-                            }
-                        }
-                    }
-                }
-            }
-            return result;
-        }
-        //*/
         #endregion
 
         #region Transaction
