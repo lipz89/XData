@@ -273,6 +273,7 @@ namespace XData.Core.ExpressionVisitors
         {
             nodeTypes.Push(node.NodeType);
             var method = node.Method;
+            sql += "(";
             if (method == Constans.MethodStringContains)
             {
                 base.Visit(node.Object);
@@ -313,7 +314,7 @@ namespace XData.Core.ExpressionVisitors
                 base.Visit(node.Arguments[0]);
                 methodTypes.Pop();
             }
-            else if (Constans.IsListContains(method))
+            else if (method.IsListContains())
             {
                 base.Visit(node.Arguments[0]);
                 sql += " IN ";
@@ -329,11 +330,21 @@ namespace XData.Core.ExpressionVisitors
                 base.Visit(node.Arguments[0]);
                 methodTypes.Pop();
             }
+            else if (method.IsBetween())
+            {
+                base.Visit(node.Arguments[0]);
+                sql += " BETWEEN ";
+                methodTypes.Push(Constans.ObjectBetween);
+                base.Visit(node.Arguments[1]);
+                sql += " AND ";
+                base.Visit(node.Arguments[2]);
+                methodTypes.Pop();
+            }
             else
             {
                 throw Error.NotSupportedException("不支持的方法运算:" + method.Name);
             }
-
+            sql += ")";
             nodeTypes.Pop();
             return node;
         }
@@ -423,17 +434,8 @@ namespace XData.Core.ExpressionVisitors
                     }
                     break;
                 case Constans.StringSqlLike:
-                    if (hasValue)
-                    {
-                        sql += privoder.GetParameterIndex();
-                        privoder._parameters.Add(value);
-                    }
-                    else
-                    {
-                        sql += fieldName;
-                    }
-                    break;
                 case Constans.ObjectEquals:
+                case Constans.ObjectBetween:
                     if (hasValue)
                     {
                         sql += privoder.GetParameterIndex();

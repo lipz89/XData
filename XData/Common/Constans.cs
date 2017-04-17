@@ -20,6 +20,7 @@ namespace XData.Common
             MethodEnumerableContains = typeof(Enumerable).GetMethods().First(x => x.Name == "Contains" && x.GetParameters().Length == 2);
             MethodListContains = typeof(List<>).GetMethod("Contains");
             MethodStringSqlLike = typeof(XSqlFunctions).GetMethod("SqlLike");
+            MethodBetween = typeof(XSqlFunctions).GetMethod("Between");
             DictionaryContainsKey = typeof(Dictionary<string, object>).GetMethod("ContainsKey");
             DictionaryIndex = typeof(Dictionary<string, object>).GetProperty("Item");
         }
@@ -34,6 +35,7 @@ namespace XData.Common
         public const string StringSqlLike = "StringSqlLike";
         public const string EnumerableContains = "EnumerableContains";
         public const string ObjectEquals = "ObjectEquals";
+        public const string ObjectBetween = "ObjectBetween";
 
         #endregion
 
@@ -43,6 +45,7 @@ namespace XData.Common
         public static readonly MethodInfo MethodStringStartsWith;
         public static readonly MethodInfo MethodStringEndsWith;
         public static readonly MethodInfo MethodStringSqlLike;
+        public static readonly MethodInfo MethodBetween;
         public static readonly MethodInfo MethodEnumerableContains;
         public static readonly MethodInfo MethodListContains;
         public static readonly MethodInfo MethodObjectEquals;
@@ -51,7 +54,7 @@ namespace XData.Common
 
         #endregion
 
-        public static bool IsListContains(MethodInfo method)
+        public static bool IsListContains(this MethodInfo method)
         {
             var declaringType = method.DeclaringType;
             if (declaringType == null)
@@ -65,6 +68,11 @@ namespace XData.Common
             }
 
             return false;
+        }
+
+        public static bool IsBetween(this MethodInfo method)
+        {
+            return method.IsGenericMethod && method.GetGenericMethodDefinition() == MethodBetween;
         }
     }
 }

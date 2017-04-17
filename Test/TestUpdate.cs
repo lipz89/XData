@@ -29,8 +29,11 @@ namespace Test
 
             var name = menu.Name + "^^";
 
-            menu.Name += "_";
-            db.Update(menu, false, x => x.RowVersion);
+            menu.CreateTime = DateTime.Now;
+            menu.CreateUserName = "system";
+            menu.LastUpdateTime = DateTime.Now;
+            menu.UpdateUserName = "Test";
+            db.Update(menu, false, x => x.RowVersion, x => x.Name, x => x.Code, x => x.Action, x => x.Controller, x => x.IndexID, x => x.Memo, x => x.MenuLevel, x => x.ParentID, x => x.Url);
 
             menu = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
             Console.WriteLine(menu.Name);

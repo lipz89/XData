@@ -13,14 +13,14 @@ namespace XData
     /// <summary>
     /// 数据库上下文
     /// </summary>
-    public partial class XContext
+    public sealed partial class XContext : IDisposable
     {
         #region Properties
 
         /// <summary>
         /// 获取ADO.NET数据库访问类创建工厂
         /// </summary>
-        public DbProviderFactory DbProviderFactory { get; }
+        public DbProviderFactory DbProviderFactory { get; private set; }
 
         /// <summary>
         /// 数据库连接提供程序
@@ -34,7 +34,9 @@ namespace XData
         /// <summary>
         /// 数据库类型
         /// </summary>
-        internal DatabaseType DatabaseType { get; set; }
+        internal DatabaseType DatabaseType { get; private set; }
+
+        internal XTransaction Transaction { get; set; }
 
         #endregion
 
@@ -235,39 +237,44 @@ namespace XData
         public int ExecuteNonQuery(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             int result = 0;
-            using (DbConnection dbConnection = this.CreateConnection())
+            DbConnection dbConnection = Transaction?.Connection ?? this.CreateConnection();
+            using (DbCommand dbCommand = this.CreateCommand())
             {
-                using (DbCommand dbCommand = this.CreateCommand())
+                dbCommand.Connection = dbConnection;
+                dbCommand.Transaction = Transaction?.Transaction;
+                dbCommand.CommandType = commandType;
+                dbCommand.CommandText = sql;
+                if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Connection = dbConnection;
-                    dbCommand.CommandType = commandType;
-                    dbCommand.CommandText = sql;
-                    if (!parameters.IsNullOrEmpty())
-                    {
-                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
-                    }
-                    var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
-                    try
+                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                }
+                var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                try
+                {
+                    if (dbConnection.State == ConnectionState.Closed)
                     {
                         dbConnection.Open();
-                        result = dbCommand.ExecuteNonQuery();
-                        this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteNonQuery成功！{0}{1}", Environment.NewLine, log), null);
                     }
-                    catch (Exception ex)
+                    result = dbCommand.ExecuteNonQuery();
+                    this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteNonQuery成功！{0}{1}", Environment.NewLine, log), null);
+                }
+                catch (Exception ex)
+                {
+                    Transaction?.AddException(ex);
+                    string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
+                    this.Log(LogLevel.Error, message, ex);
+                    throw;
+                }
+                finally
+                {
+                    if (dbConnection.State != ConnectionState.Closed && Transaction == null)
                     {
-                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                        this.Log(LogLevel.Error, message, ex);
-                        throw;
-                    }
-                    finally
-                    {
-                        if (dbConnection.State != ConnectionState.Closed)
-                        {
-                            dbConnection.Close();
-                        }
+                        dbConnection.Close();
+                        dbConnection.Dispose();
                     }
                 }
             }
+
             return result;
         }
 
@@ -279,46 +286,55 @@ namespace XData
         public int ExecuteNonQuery(IList<string> sqls)
         {
             int num = 0;
-            using (DbConnection dbConnection = this.CreateConnection())
+            var flagNewTransaction = false;
+            if (Transaction == null)
             {
-                using (DbCommand dbCommand = this.CreateCommand())
+                Transaction = new XTransaction(this);
+                flagNewTransaction = true;
+            }
+            DbConnection dbConnection = Transaction?.Connection ?? this.CreateConnection();
+            using (DbCommand dbCommand = this.CreateCommand())
+            {
+                dbCommand.Connection = dbConnection;
+                dbCommand.CommandType = CommandType.Text;
+                dbCommand.Transaction = Transaction?.Transaction;
+                var log = this.LogFormatter(sqls, CommandType.Text, null);
+                try
                 {
-                    dbCommand.Connection = dbConnection;
-                    dbCommand.CommandType = CommandType.Text;
-                    DbTransaction dbTransaction = null;
-                    var log = this.LogFormatter(sqls, CommandType.Text, null);
-                    try
+                    if (dbConnection.State == ConnectionState.Closed)
                     {
                         dbConnection.Open();
-                        dbTransaction = dbConnection.BeginTransaction();
-                        foreach (string current in sqls)
-                        {
-                            dbCommand.CommandText = current;
-                            dbCommand.Transaction = dbTransaction;
-                            num += dbCommand.ExecuteNonQuery();
-                        }
-                        dbTransaction.Commit();
-                        this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteNonQuery成功！{0}{1}", Environment.NewLine, log), null);
                     }
-                    catch (Exception ex)
+                    foreach (string current in sqls)
                     {
-                        if (dbTransaction != null)
-                        {
-                            dbTransaction.Rollback();
-                        }
-                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                        this.Log(LogLevel.Error, message, ex);
-                        throw;
+                        dbCommand.CommandText = current;
+                        num += dbCommand.ExecuteNonQuery();
                     }
-                    finally
+                    if (flagNewTransaction)
                     {
-                        if (dbConnection.State != ConnectionState.Closed)
-                        {
-                            dbConnection.Close();
-                        }
+                        Transaction.Commit();
+                    }
+                    this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteNonQuery成功！{0}{1}", Environment.NewLine, log), null);
+                }
+                catch (Exception ex)
+                {
+                    if (flagNewTransaction)
+                    {
+                        Transaction.Rollback();
+                    }
+                    string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
+                    this.Log(LogLevel.Error, message, ex);
+                    throw;
+                }
+                finally
+                {
+                    if (dbConnection.State != ConnectionState.Closed && !flagNewTransaction)
+                    {
+                        dbConnection.Close();
                     }
                 }
             }
+
             return num;
         }
         #endregion
@@ -367,39 +383,43 @@ namespace XData
         public object ExecuteScalar(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             object result = null;
-            using (DbConnection dbConnection = this.CreateConnection())
+            DbConnection dbConnection = Transaction?.Connection ?? this.CreateConnection();
+            using (DbCommand dbCommand = this.CreateCommand())
             {
-                using (DbCommand dbCommand = this.CreateCommand())
+                dbCommand.Connection = dbConnection;
+                dbCommand.CommandType = commandType;
+                //dbCommand.Transaction = Transaction?.Transaction;
+                dbCommand.CommandText = sql;
+                if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Connection = dbConnection;
-                    dbCommand.CommandType = commandType;
-                    dbCommand.CommandText = sql;
-                    if (!parameters.IsNullOrEmpty())
-                    {
-                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
-                    }
-                    var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
-                    try
+                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                }
+                var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                try
+                {
+                    if (dbConnection.State == ConnectionState.Closed)
                     {
                         dbConnection.Open();
-                        result = dbCommand.ExecuteScalar();
-                        this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteScalar成功！{0}{1}", Environment.NewLine, log), null);
                     }
-                    catch (Exception ex)
+                    result = dbCommand.ExecuteScalar();
+                    this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteScalar成功！{0}{1}", Environment.NewLine, log), null);
+                }
+                catch (Exception ex)
+                {
+                    Transaction?.AddException(ex);
+                    string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
+                    this.Log(LogLevel.Error, message, ex);
+                    throw;
+                }
+                finally
+                {
+                    if (dbConnection.State != ConnectionState.Closed && Transaction == null)
                     {
-                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                        this.Log(LogLevel.Error, message, ex);
-                        throw;
-                    }
-                    finally
-                    {
-                        if (dbConnection.State != ConnectionState.Closed)
-                        {
-                            dbConnection.Close();
-                        }
+                        dbConnection.Close();
                     }
                 }
             }
+
             return result;
         }
         #endregion
@@ -684,6 +704,33 @@ namespace XData
         //*/
         #endregion
 
+        #region Transaction
+
+        /// <summary>
+        /// 在当前数据库上下文中开启事务
+        /// </summary>
+        public void BeginTransaction()
+        {
+            if (Transaction == null || Transaction.State == TransactionState.None)
+            {
+                Transaction = new XTransaction(this);
+            }
+        }
+
+        /// <summary>
+        /// 完成当前数据库上下文的事务
+        /// </summary>
+        /// <remarks>如果当前事务执行期间没有发生异常，提交事务，否则回滚事务。</remarks>
+        public void CompleteTransaction()
+        {
+            if (Transaction != null && Transaction.State != TransactionState.None)
+            {
+                Transaction.Complete();
+            }
+        }
+
+        #endregion
+
         #region Log
 
         /// <summary>
@@ -692,7 +739,8 @@ namespace XData
         /// <param name="level">日志级别</param>
         /// <param name="message">消息</param>
         /// <param name="ex">异常</param>
-        private void Log(LogLevel level, string message, Exception ex = null)
+        private
+        void Log(LogLevel level, string message, Exception ex = null)
         {
             //ConsoleWrite(level, message, ex);
             //Log(level, 0, message, ex, null);
@@ -741,5 +789,15 @@ namespace XData
             return string.Join("\r\n", list);
         }
         #endregion
+
+        /// <summary>
+        /// 释放<see cref="XContext" />的非托管资源。
+        /// </summary>
+        public void Dispose()
+        {
+            this.DatabaseType = null;
+            this.DbProviderFactory = null;
+            this.Transaction?.Dispose();
+        }
     }
 }

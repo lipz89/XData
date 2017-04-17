@@ -122,8 +122,9 @@ namespace Test
         public void TestOrder()
         {
             var db = Program.NewContext();
-            var query = db.Query<TestModel>().Where(x => x.Index < 10).OrderBy(x => x.Index + 1);
-            query.ToList();
+            var query = db.Query<TestModel>().Where(x => x.Index.Between(10, 15)).OrderBy(x => x.Index + 1);
+            var l = query.ToList();
+            Console.WriteLine(l.Count);
         }
 
         [Test]
