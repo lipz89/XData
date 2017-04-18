@@ -124,7 +124,9 @@ namespace XData
             {
                 this.Complete();
                 this.Transaction?.Dispose();
+                this.Connection?.Dispose();
                 this.Transaction = null;
+                this.Connection = null;
                 this.exceptions.Clear();
                 this.State = TransactionState.None;
             }
