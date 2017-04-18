@@ -619,7 +619,7 @@ namespace XData
         {
             if (Transaction != null && Transaction.State != TransactionState.None)
             {
-                Transaction.Complete();
+                Transaction.Dispose();
             }
         }
 
