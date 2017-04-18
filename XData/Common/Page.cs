@@ -50,7 +50,7 @@ namespace XData.Common
     /// <summary>
     /// 分页数据
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">实体类型</typeparam>
     public class Page<T> : Page
     {
         /// <summary>

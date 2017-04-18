@@ -11,7 +11,7 @@ namespace XData.Core
         /// 用泛型类做缓存
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        class Cache<T>
+        private class Cache<T>
         {
             public static IReader<T> Instance { get; set; }
         }

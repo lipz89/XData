@@ -55,7 +55,7 @@ namespace XData.XBuilder
         /// <summary>
         /// 构造一个Sql构造器
         /// </summary>
-        /// <param name="Context"></param>
+        /// <param name="Context">Sql构造器所依附的数据库上下文</param>
         protected SqlBuilber(XContext Context)
         {
             this.Context = Context;
@@ -67,8 +67,8 @@ namespace XData.XBuilder
         /// <summary>
         /// 转码标识符
         /// </summary>
-        /// <param name="str"></param>
-        /// <returns></returns>
+        /// <param name="str">要转码的标识符</param>
+        /// <returns>转码后的标识符</returns>
         protected internal string EscapeSqlIdentifier(string str)
         {
             return Context.DatabaseType.EscapeSqlIdentifier(str);
@@ -76,7 +76,7 @@ namespace XData.XBuilder
         /// <summary>
         /// 获取下一个以数字排序命名的参数名称字符串
         /// </summary>
-        /// <returns></returns>
+        /// <returns>返回当前参数序号</returns>
         protected internal string GetParameterIndex()
         {
             var index = this.parameterIndex;
@@ -89,7 +89,7 @@ namespace XData.XBuilder
         /// <summary>
         /// 转换成Sql语句
         /// </summary>
-        /// <returns></returns>
+        /// <returns>返回sql语句字符串</returns>
         public abstract string ToSql();
 
         //internal virtual string GetFieldSql(string field)

@@ -41,22 +41,22 @@ namespace XData.XBuilder
                 _expression = Expression.AndAlso(_expression, ParameterReplaceVisitor.Replace(expression.Body, _parameter));
             }
         }
-        /// <summary>
-        /// 添加一个查询条件
-        /// </summary>
-        /// <param name="expression"></param>
-        public void AddOr(Expression<Func<T, bool>> expression)
-        {
-            if (_expression == null)
-            {
-                _expression = expression.Body;
-                _parameter = expression.Parameters[0];
-            }
-            else
-            {
-                _expression = Expression.OrElse(_expression, ParameterReplaceVisitor.Replace(expression.Body, _parameter));
-            }
-        }
+        ///// <summary>
+        ///// 添加一个查询条件
+        ///// </summary>
+        ///// <param name="expression"></param>
+        //public void AddOr(Expression<Func<T, bool>> expression)
+        //{
+        //    if (_expression == null)
+        //    {
+        //        _expression = expression.Body;
+        //        _parameter = expression.Parameters[0];
+        //    }
+        //    else
+        //    {
+        //        _expression = Expression.OrElse(_expression, ParameterReplaceVisitor.Replace(expression.Body, _parameter));
+        //    }
+        //}
         #endregion
 
         #region SqlBuilder

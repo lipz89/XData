@@ -75,7 +75,6 @@
     <Compile Include="Core\ExpressionVisitors\ParameterReplaceVisitor.cs" />
     <Compile Include="XBuilder\ComplexQuery.cs" />
     <Compile Include="XBuilder\IQuery.cs" />
-    <Compile Include="XBuilder\Join.cs" />
     <Compile Include="XBuilder\SqlBuilber.cs" />
     <Compile Include="Common\Constans.cs" />
     <Compile Include="XBuilder\Delete.cs" />

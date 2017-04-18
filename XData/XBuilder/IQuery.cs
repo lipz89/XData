@@ -9,7 +9,7 @@ namespace XData.XBuilder
     /// <summary>
     /// 查询接口
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">实体类型</typeparam>
     public interface IQuery<T>
     {
         /// <summary>
@@ -24,136 +24,136 @@ namespace XData.XBuilder
         /// <summary>
         /// 查询条件
         /// </summary>
-        /// <param name="expression"></param>
-        /// <returns></returns>
+        /// <param name="expression">条件表达式</param>
+        /// <returns>当前查询</returns>
         IQuery<T> Where(Expression<Func<T, bool>> expression);
 
-        /// <summary>
-        /// 查询条件
-        /// </summary>
-        /// <param name="expression"></param>
-        /// <returns></returns>
-        IQuery<T> WhereOr(Expression<Func<T, bool>> expression);
+        ///// <summary>
+        ///// 查询条件
+        ///// </summary>
+        ///// <param name="expression">条件表达式</param>
+        ///// <returns>当前接口</returns>
+        //IQuery<T> WhereOr(Expression<Func<T, bool>> expression);
 
-        /// <summary>
-        /// 清除查询条件
-        /// </summary>
-        /// <returns></returns>
-        IQuery<T> ClearWhere();
+        ///// <summary>
+        ///// 清除查询条件
+        ///// </summary>
+        ///// <returns>当前接口</returns>
+        //IQuery<T> ClearWhere();
 
         /// <summary>
         /// 排序条件
         /// </summary>
-        /// <typeparam name="TProperty"></typeparam>
-        /// <param name="expression"></param>
-        /// <param name="isAsc"></param>
-        /// <returns></returns>
+        /// <typeparam name="TProperty">排序属性类型</typeparam>
+        /// <param name="expression">排序字段表达式</param>
+        /// <param name="isAsc">是否升序，true为升序，false为降序，默认为true</param>
+        /// <returns>当前查询</returns>
         IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression, bool isAsc = true);
 
         /// <summary>
         /// 多字段升序
         /// </summary>
-        /// <param name="expressions"></param>
-        /// <returns></returns>
+        /// <param name="expressions">排序字段表达式数组</param>
+        /// <returns>当前查询</returns>
         IQuery<T> OrderBy(params Expression<Func<T, object>>[] expressions);
 
         /// <summary>
         /// 多字段降序
         /// </summary>
-        /// <param name="expressions"></param>
-        /// <returns></returns>
+        /// <param name="expressions">排序字段表达式数组</param>
+        /// <returns>当前查询</returns>
         IQuery<T> OrderByDescending(params Expression<Func<T, object>>[] expressions);
 
-        /// <summary>
-        /// 清除排序条件
-        /// </summary>
-        /// <returns></returns>
-        IQuery<T> ClearOrder();
+        ///// <summary>
+        ///// 清除排序条件
+        ///// </summary>
+        ///// <returns>当前查询</returns>
+        //IQuery<T> ClearOrder();
 
         /// <summary>
         /// 设置查询的条数
         /// </summary>
         /// <param name="top">大于0表示查询条数，否则表示查询所有</param>
-        /// <returns></returns>
+        /// <returns>当前查询</returns>
         IQuery<T> Top(int top);
 
         /// <summary>
         /// 返回非重复记录
         /// </summary>
         /// <param name="distinct">true表示返回非重复数据，否则表示返回所有数据</param>
-        /// <returns>查询构建器</returns>
+        /// <returns>当前查询</returns>
         IQuery<T> Distinct(bool distinct = true);
 
         /// <summary>
         /// 投影
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="result"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult">投影结果类型</typeparam>
+        /// <param name="result">投影函数表达式</param>
+        /// <returns>返回一个表示对投影结果的查询</returns>
         IQuery<TResult> Select<TResult>(Expression<Func<T, TResult>> result);
 
         /// <summary>
         /// 计算查询结果的记录数
         /// </summary>
-        /// <returns></returns>
+        /// <returns>计数结果</returns>
         int Count();
 
         /// <summary>
         /// 查询结果中的最大值
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="selector"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult">结果类型</typeparam>
+        /// <param name="selector">表达式</param>
+        /// <returns>最大值</returns>
         TResult Max<TResult>(Expression<Func<T, TResult>> selector);
 
         /// <summary>
         /// 查询结果中的最小值
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="selector"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult">结果类型</typeparam>
+        /// <param name="selector">表达式</param>
+        /// <returns>最小值</returns>
         TResult Min<TResult>(Expression<Func<T, TResult>> selector);
 
         /// <summary>
         /// 查询结果中所有值的和
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="selector"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult">结果类型</typeparam>
+        /// <param name="selector">表达式</param>
+        /// <returns>所有值的和</returns>
         TResult Sum<TResult>(Expression<Func<T, TResult>> selector);
 
         /// <summary>
         /// 查询结果中的平均值
         /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="selector"></param>
-        /// <returns></returns>
+        /// <typeparam name="TResult">结果类型</typeparam>
+        /// <param name="selector">表达式</param>
+        /// <returns>返回平均值</returns>
         TResult Avg<TResult>(Expression<Func<T, TResult>> selector);
 
         /// <summary>
         /// 将查询结果输出到列表中
         /// </summary>
-        /// <returns></returns>
+        /// <returns>返回当前查询的结果</returns>
         List<T> ToList();
 
         /// <summary>
         /// 提取查询的分页数据
         /// </summary>
-        /// <param name="pageIndex"></param>
-        /// <param name="pageSize"></param>
-        /// <returns></returns>
+        /// <param name="pageIndex">页索引</param>
+        /// <param name="pageSize">页宽</param>
+        /// <returns>返回分页数据结果</returns>
         Page<T> ToPage(int pageIndex, int pageSize);
 
         /// <summary>
         /// 提取查询的分页数据
         /// </summary>
-        /// <param name="page"></param>
-        /// <returns></returns>
+        /// <param name="page">分页参数</param>
+        /// <returns>返回分页数据结果</returns>
         Page<T> ToPage(Page page);
         /// <summary>
         /// 转换成Sql语句
         /// </summary>
-        /// <returns></returns>
+        /// <returns>返回sql语句字符串</returns>
         string ToSql();
     }
 
@@ -165,7 +165,7 @@ namespace XData.XBuilder
         /// <summary>
         /// 执行Sql命令
         /// </summary>
-        /// <returns></returns>
+        /// <returns>返回受影响的行数</returns>
         int Execute();
     }
 }

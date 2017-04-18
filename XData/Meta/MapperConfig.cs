@@ -29,8 +29,8 @@ namespace XData.Meta
         /// <summary>
         /// 配置模型对应的表名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="tableName"></param>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <param name="tableName">模型对应的表名称</param>
         public static void HasTableName<T>(string tableName)
         {
             HasTableName(typeof(T), tableName);
@@ -55,9 +55,9 @@ namespace XData.Meta
         /// <summary>
         /// 配置模型属性对应的字段名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="property"></param>
-        /// <param name="columnName"></param>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <param name="property">模型属性的表达式</param>
+        /// <param name="columnName">模型属性对应的字段名称</param>
         public static void HasColumnName<T>(Expression<Func<T, object>> property, string columnName)
         {
             if (property == null)
@@ -99,9 +99,9 @@ namespace XData.Meta
         /// <summary>
         /// 配置模型的主键列名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="property"></param>
-        /// <param name="columnName"></param>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <param name="property">模型主键属性的表达式</param>
+        /// <param name="columnName">模型主键属性对应的字段名称</param>
         public static void HasKey<T>(Expression<Func<T, object>> property, string columnName = null)
         {
             if (property == null)
@@ -137,9 +137,10 @@ namespace XData.Meta
         /// <summary>
         /// 配置模型的自增列名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="property"></param>
-        public static void HasIdentity<T>(Expression<Func<T, object>> property)
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <param name="property">模型自增列属性的表达式</param>
+        /// <param name="columnName">自增列对应的字段名称</param>
+        public static void HasIdentity<T>(Expression<Func<T, object>> property, string columnName = null)
         {
             var member = property.GetMember();
             if (member == null)
@@ -156,14 +157,18 @@ namespace XData.Meta
             {
                 TableIdentities.Add(type, m);
             }
+            if (!columnName.IsNullOrWhiteSpace())
+            {
+                HasColumnName(property, columnName);
+            }
         }
 
         /// <summary>
-        /// 配置自增列的主键
+        /// 配置同时为自增列的主键
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="property"></param>
-        /// <param name="columnName"></param>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <param name="property">模型主键属性的表达式</param>
+        /// <param name="columnName">模型主键对应的字段名称</param>
         public static void HasKeyAndIdentity<T>(Expression<Func<T, object>> property, string columnName = null)
         {
             HasKey(property, columnName);
@@ -173,8 +178,8 @@ namespace XData.Meta
         /// <summary>
         /// 忽略成员
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="property"></param>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <param name="property">要忽略的模型属性的表达式</param>
         public static void IgnoreColumn<T>(Expression<Func<T, object>> property)
         {
             if (property == null)
@@ -211,8 +216,8 @@ namespace XData.Meta
         /// <summary>
         /// 忽略成员
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="properties"></param>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <param name="properties">要忽略的模型属性的表达式数组</param>
         public static void IgnoreColumn<T>(params Expression<Func<T, object>>[] properties)
             where T : class
         {
@@ -229,8 +234,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的表名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <returns>返回模型对应的表名</returns>
         public static string GetTableName<T>()
         {
             return GetTableName(typeof(T));
@@ -239,8 +244,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的表名
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="type">模型类型</param>
+        /// <returns>返回模型对应的表名</returns>
         public static string GetTableName(Type type)
         {
             if (TableNames.ContainsKey(type))
@@ -253,10 +258,10 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的字段名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="TProperty"></typeparam>
-        /// <param name="property"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <typeparam name="TProperty">模型的成员类型</typeparam>
+        /// <param name="property">模型成员表达式</param>
+        /// <returns>成员对应的列名称</returns>
         public static string GetColumnName<T, TProperty>(Expression<Func<T, TProperty>> property)
         {
             if (property == null)
@@ -274,9 +279,9 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的字段名
         /// </summary>
-        /// <param name="memberInfo"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="memberInfo">模型的成员信息</param>
+        /// <param name="type">模型类型</param>
+        /// <returns>成员对应的列名称</returns>
         public static string GetColumnName(MemberInfo memberInfo, Type type)
         {
             if (memberInfo == null)
@@ -294,8 +299,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <returns>返回模型的主键列名称</returns>
         public static string GetKey<T>()
         {
             return GetKey(typeof(T));
@@ -304,8 +309,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="type">模型类型</param>
+        /// <returns>返回模型的主键列名称</returns>
         public static string GetKey(Type type)
         {
             if (TableKeys.ContainsKey(type))
@@ -318,7 +323,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
-        /// <returns></returns>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <returns>返回模型的主键列信息</returns>
         internal static ColumnMeta GetKeyMeta<T>()
         {
             return GetKeyMeta(typeof(T));
@@ -327,8 +333,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="type">模型类型</param>
+        /// <returns>返回模型的主键列信息</returns>
         internal static ColumnMeta GetKeyMeta(Type type)
         {
             if (TableKeys.ContainsKey(type))
@@ -341,7 +347,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
-        /// <returns></returns>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <returns>返回模型的自增列信息</returns>
         internal static MInfo GetIdentities<T>()
         {
             return GetIdentities(typeof(T));
@@ -350,8 +357,8 @@ namespace XData.Meta
         /// <summary>
         /// 返回模型对应的主键字段名
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="type">模型类型</param>
+        /// <returns>返回模型的自增列信息</returns>
         internal static MInfo GetIdentities(Type type)
         {
             if (TableIdentities.ContainsKey(type))
@@ -364,10 +371,10 @@ namespace XData.Meta
         /// <summary>
         /// 判断某字段是否被忽略
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="TProperty"></typeparam>
-        /// <param name="property"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">模型类型</typeparam>
+        /// <typeparam name="TProperty">属性类型</typeparam>
+        /// <param name="property">判断是否忽略的属性表达式</param>
+        /// <returns>返回该字段是否忽略映射</returns>
         public static bool IsIgnore<T, TProperty>(Expression<Func<T, TProperty>> property)
         {
             if (property == null)
@@ -385,9 +392,9 @@ namespace XData.Meta
         /// <summary>
         /// 判断某字段是否被忽略
         /// </summary>
-        /// <param name="memberInfo"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="memberInfo">属性或字段成员信息</param>
+        /// <param name="type">模型类型</param>
+        /// <returns>返回该字段是否忽略映射</returns>
         public static bool IsIgnore(MemberInfo memberInfo, Type type)
         {
             if (memberInfo == null)

@@ -126,34 +126,34 @@ namespace XData.XBuilder
             this._wherePart = null;
             return this;
         }
-        /// <summary>
-        /// 查询条件
-        /// </summary>
-        /// <param name="expression"></param>
-        /// <returns></returns>
-        public IQuery<T> WhereOr(Expression<Func<T, bool>> expression)
-        {
-            if (expression == null)
-            {
-                throw Error.ArgumentNullException(nameof(expression));
-            }
-            this.where = this.where ?? new Where<T>(Context, this);
-            this.where.AddOr(expression);
-            this._list = null;
-            this._wherePart = null;
-            return this;
-        }
-        /// <summary>
-        /// 清除查询条件
-        /// </summary>
-        /// <returns></returns>
-        public IQuery<T> ClearWhere()
-        {
-            this.where = null;
-            this._list = null;
-            this._wherePart = null;
-            return this;
-        }
+        ///// <summary>
+        ///// 查询条件
+        ///// </summary>
+        ///// <param name="expression"></param>
+        ///// <returns></returns>
+        //public IQuery<T> WhereOr(Expression<Func<T, bool>> expression)
+        //{
+        //    if (expression == null)
+        //    {
+        //        throw Error.ArgumentNullException(nameof(expression));
+        //    }
+        //    this.where = this.where ?? new Where<T>(Context, this);
+        //    this.where.AddOr(expression);
+        //    this._list = null;
+        //    this._wherePart = null;
+        //    return this;
+        //}
+        ///// <summary>
+        ///// 清除查询条件
+        ///// </summary>
+        ///// <returns></returns>
+        //public IQuery<T> ClearWhere()
+        //{
+        //    this.where = null;
+        //    this._list = null;
+        //    this._wherePart = null;
+        //    return this;
+        //}
 
         #endregion
 
@@ -196,16 +196,16 @@ namespace XData.XBuilder
             this._list = null;
             return this;
         }
-        /// <summary>
-        /// 清除排序条件
-        /// </summary>
-        /// <returns></returns>
-        public IQuery<T> ClearOrder()
-        {
-            this.order = null;
-            this._list = null;
-            return this;
-        }
+        ///// <summary>
+        ///// 清除排序条件
+        ///// </summary>
+        ///// <returns></returns>
+        //public IQuery<T> ClearOrder()
+        //{
+        //    this.order = null;
+        //    this._list = null;
+        //    return this;
+        //}
 
         #endregion
 

@@ -12,8 +12,8 @@ namespace XData.Core
         /// <summary>
         /// 字符串Like查询
         /// </summary>
-        /// <param name="source"></param>
-        /// <param name="pattern"></param>
+        /// <param name="source">源字符串</param>
+        /// <param name="pattern">匹配表达式</param>
         /// <returns></returns>
         public static bool SqlLike(this string source, string pattern)
         {
@@ -22,10 +22,10 @@ namespace XData.Core
         /// <summary>
         /// Between方法
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="value"></param>
-        /// <param name="start"></param>
-        /// <param name="end"></param>
+        /// <typeparam name="T">参数类型</typeparam>
+        /// <param name="value">目标值</param>
+        /// <param name="start">最小值</param>
+        /// <param name="end">最大值</param>
         /// <returns></returns>
         public static bool Between<T>(this T value, T start, T end) where T : struct, IComparable<T>
         {
