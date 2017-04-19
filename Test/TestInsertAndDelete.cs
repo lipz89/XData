@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 using NUnit.Framework;
 
@@ -26,6 +27,7 @@ namespace Test
                 IndexID = 1,
             };
             var db = Program.NewContext();
+            db.SqlLog = Console.WriteLine;
 
             var row = db.Insert(model, false, x => x.RowVersion);
 

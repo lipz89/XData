@@ -27,6 +27,9 @@ namespace Test
             };
             var db = Program.NewContext();
             {
+#if DEBUG
+                db.SqlLog = Console.WriteLine;
+#endif
                 db.BeginTransaction();
 
                 var row = db.Insert(model, false, x => x.RowVersion);

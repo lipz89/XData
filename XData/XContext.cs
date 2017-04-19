@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
+using System.Linq;
 
 using XData.Common;
 using XData.Core;
@@ -15,6 +15,8 @@ namespace XData
     /// </summary>
     public sealed partial class XContext : IDisposable
     {
+        private Action<string> sqlLog;
+
         #region Properties
 
         /// <summary>
@@ -38,33 +40,32 @@ namespace XData
 
         internal XTransaction Transaction { get; set; }
 
+        /// <summary>
+        /// sql语句监视方法
+        /// </summary>
+        public Action<string> SqlLog
+        {
+            get { return sqlLog; }
+            set
+            {
+                if (value != null)
+                {
+                    value.Invoke(string.Format("{0} [{1}] 开始日志输出。", DateTime.Now, this.GetHashCode()));
+                    //value.Invoke(string.Format("[{0}] 连接字符串: {1}", this.GetHashCode(), this.ConnectionString));
+                    //value.Invoke(string.Format("[{0}] 提供程序: {1}", this.GetHashCode(), this.ProviderName));
+                }
+                else
+                {
+                    sqlLog?.Invoke(string.Format("{0} [{1}] 停止日志输出。", DateTime.Now, this.GetHashCode()));
+                }
+
+                sqlLog = value;
+            }
+        }
+
         #endregion
 
         #region Constructors
-
-        ///// <summary>
-        ///// 初始化数据库上下文
-        ///// </summary>
-        ///// <param name="config">数据库连接名称</param>
-        //public XContext(DbConfig config)
-        //{
-        //    if (config == null)
-        //    {
-        //        throw Error.ArgumentNullException(nameof(config));
-        //    }
-
-        //    if (string.IsNullOrWhiteSpace(config.ConnectionString))
-        //    {
-        //        throw Error.Exception(string.Format("未获取到{0}的数据库链接的连接字符串。", config.Name));
-        //    }
-        //    if (string.IsNullOrWhiteSpace(config.ProviderName))
-        //    {
-        //        throw Error.Exception(string.Format("未获取到{0}的数据库链接的提供程序。", config.Name));
-        //    }
-        //    this.ProviderName = config.ProviderName;
-        //    this.DbProviderFactory = DbProviderFactories.GetFactory(this.ProviderName);
-        //    this.ConnectionString = config.ConnectionString;
-        //}
 
         /// <summary>
         /// 初始化数据库上下文
@@ -101,6 +102,8 @@ namespace XData
             {
                 dbConnection = this.DbProviderFactory.CreateConnection();
                 dbConnection.ConnectionString = this.ConnectionString;
+                this.sqlLog?.Invoke(string.Format("{0} [{1}] 创建新的连接[{2}]。",
+                    DateTime.Now, this.GetHashCode(), dbConnection.GetHashCode()));
             }
             return dbConnection;
         }
@@ -145,6 +148,8 @@ namespace XData
             {
                 dbConnection.Close();
                 dbConnection.Dispose();
+                this.sqlLog?.Invoke(string.Format("{0} [{1}] 释放连接[{2}]。",
+                    DateTime.Now, this.GetHashCode(), dbConnection.GetHashCode()));
             }
         }
 
@@ -259,11 +264,12 @@ namespace XData
                 dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
+                var pars = CheckNullParameter(parameters);
                 if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    dbCommand.Parameters.AddRange(pars);
                 }
-                var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                var log = this.LogFormatter(sql, commandType, parameters);
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -271,14 +277,11 @@ namespace XData
                         dbConnection.Open();
                     }
                     result = dbCommand.ExecuteNonQuery();
-                    this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteNonQuery成功！{0}{1}", Environment.NewLine, log), null);
                 }
                 catch (Exception ex)
                 {
                     Transaction?.AddException(ex);
-                    string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                    this.Log(LogLevel.Error, message, ex);
-                    throw;
+                    throw NewException(ex, sql, pars, commandType);
                 }
                 finally
                 {
@@ -309,7 +312,8 @@ namespace XData
                 dbCommand.Connection = dbConnection;
                 dbCommand.CommandType = CommandType.Text;
                 dbCommand.Transaction = Transaction?.Transaction;
-                var log = this.LogFormatter(sqls, CommandType.Text, null);
+                var log = string.Join(Environment.NewLine, sqls);
+                string currentSql = null;
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -318,6 +322,7 @@ namespace XData
                     }
                     foreach (string current in sqls)
                     {
+                        currentSql = current;
                         dbCommand.CommandText = current;
                         num += dbCommand.ExecuteNonQuery();
                     }
@@ -325,7 +330,6 @@ namespace XData
                     {
                         Transaction.Commit();
                     }
-                    this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteNonQuery成功！{0}{1}", Environment.NewLine, log), null);
                 }
                 catch (Exception ex)
                 {
@@ -333,9 +337,11 @@ namespace XData
                     {
                         Transaction.Rollback();
                     }
-                    string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                    this.Log(LogLevel.Error, message, ex);
-                    throw;
+                    else
+                    {
+                        Transaction?.AddException(ex);
+                    }
+                    throw NewException(ex, currentSql);
                 }
                 finally
                 {
@@ -396,13 +402,14 @@ namespace XData
             {
                 dbCommand.Connection = dbConnection;
                 dbCommand.CommandType = commandType;
-                //dbCommand.Transaction = Transaction?.Transaction;
+                dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandText = sql;
+                var pars = CheckNullParameter(parameters);
                 if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    dbCommand.Parameters.AddRange(pars);
                 }
-                var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                var log = this.LogFormatter(sql, commandType, parameters);
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -410,14 +417,11 @@ namespace XData
                         dbConnection.Open();
                     }
                     result = dbCommand.ExecuteScalar();
-                    this.Log(LogLevel.Information, string.Format("SQL语句执行ExecuteScalar成功！{0}{1}", Environment.NewLine, log), null);
                 }
                 catch (Exception ex)
                 {
                     Transaction?.AddException(ex);
-                    string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                    this.Log(LogLevel.Error, message, ex);
-                    throw;
+                    throw NewException(ex, sql, pars, commandType);
                 }
                 finally
                 {
@@ -480,26 +484,24 @@ namespace XData
                 dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
+                var pars = CheckNullParameter(parameters);
                 if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    dbCommand.Parameters.AddRange(pars);
                 }
 
-                var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                var log = this.LogFormatter(sql, commandType, parameters);
                 using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
                 {
                     dbDataAdapter.SelectCommand = dbCommand;
                     try
                     {
                         dbDataAdapter.Fill(dataSet);
-                        this.Log(LogLevel.Information, string.Format("SQL语句执行GetDataSet成功！{0}{1}", Environment.NewLine, log), null);
                     }
                     catch (Exception ex)
                     {
                         Transaction?.AddException(ex);
-                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                        this.Log(LogLevel.Error, message, ex);
-                        throw;
+                        throw NewException(ex, sql, pars, commandType);
                     }
                     for (int j = 0; j < dataSet.Tables.Count; j++)
                     {
@@ -566,26 +568,24 @@ namespace XData
                 dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
+                var pars = CheckNullParameter(parameters);
                 if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
+                    dbCommand.Parameters.AddRange(pars);
                 }
 
                 using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
                 {
                     dbDataAdapter.SelectCommand = dbCommand;
-                    var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
+                    var log = this.LogFormatter(sql, commandType, parameters);
                     try
                     {
                         dbDataAdapter.Fill(dataTable);
-                        this.Log(LogLevel.Information, string.Format("SQL语句执行GetDataTable成功！{0}{1}", Environment.NewLine, log), null);
                     }
                     catch (Exception ex)
                     {
                         Transaction?.AddException(ex);
-                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                        this.Log(LogLevel.Error, message, ex);
-                        throw;
+                        throw NewException(ex, sql, pars, commandType);
                     }
                     if (string.IsNullOrWhiteSpace(dataTable.TableName))
                     {
@@ -608,6 +608,8 @@ namespace XData
             if (Transaction == null || Transaction.State == TransactionState.None)
             {
                 Transaction = new XTransaction(this);
+                this.sqlLog?.Invoke(string.Format("{0} [{1}] 开启事务[{2}]。",
+                    DateTime.Now, this.GetHashCode(), Transaction.GetHashCode()));
             }
         }
 
@@ -619,6 +621,10 @@ namespace XData
         {
             if (Transaction != null && Transaction.State != TransactionState.None)
             {
+                this.sqlLog?.Invoke(string.Format("{0} [{1}] 完成事务[{2}]。",
+                    DateTime.Now, this.GetHashCode(), Transaction.GetHashCode()));
+                this.sqlLog?.Invoke(string.Format("{0} [{1}] 释放连接[{2}]。",
+                    DateTime.Now, this.GetHashCode(), Transaction.Connection.GetHashCode()));
                 Transaction.Dispose();
             }
         }
@@ -628,60 +634,55 @@ namespace XData
         #region Log
 
         /// <summary>
-        /// 记录日志
-        /// </summary>
-        /// <param name="level">日志级别</param>
-        /// <param name="message">消息</param>
-        /// <param name="ex">异常</param>
-        private
-        void Log(LogLevel level, string message, Exception ex = null)
-        {
-            //ConsoleWrite(level, message, ex);
-            //Log(level, 0, message, ex, null);
-        }
-
-        [Conditional("DEBUG")]
-        private void ConsoleWrite(LogLevel level, string message, Exception ex = null)
-        {
-            Console.WriteLine(level + ":");
-            Console.WriteLine(message);
-            if (ex != null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(ex.Message);
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-        }
-
-        /// <summary>
         ///
         /// </summary>
-        /// <param name="sqls">SQL查询语句</param>
+        /// <param name="sql">SQL查询语句</param>
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns></returns>
-        private string LogFormatter(IList<string> sqls, CommandType commandType, DbParameter[] parameters)
+        private string LogFormatter(string sql, CommandType commandType, DbParameter[] parameters)
         {
             List<string> list = new List<string>();
-            list.Add(string.Format("ConnectionString:{0}", this.ConnectionString));
-            list.Add(string.Format("ProviderName:{0}", this.ProviderName));
-            list.Add("SQL：");
-            foreach (string current in sqls)
-            {
-                list.Add(current);
-            }
-            list.Add(string.Format("CommandType：\r\n{0}", commandType));
+            //list.Add(string.Format("ConnectionString:{0}", this.ConnectionString));
+            //list.Add(string.Format("ProviderName:{0}", this.ProviderName));
+            list.Add(string.Format("CommandType [{0}] :", commandType));
+            //list.Add("SQL：");
+            list.Add(sql);
             if (parameters != null && parameters.Length != 0)
             {
                 list.Add("DbParameter：");
                 for (int i = 0; i < parameters.Length; i++)
                 {
                     DbParameter dbParameter = parameters[i];
-                    list.Add(string.Format("ParameterName：{0,-32}DbType：{1,-16}Value：{2}", dbParameter.ParameterName, dbParameter.DbType, dbParameter.Value ?? "NULL"));
+                    var value = dbParameter.Value;
+                    if (value == null || value == DBNull.Value)
+                    {
+                        value = "NULL";
+                    }
+                    else if (value is string)
+                    {
+                        value = string.Format("'{0}'", value);
+                    }
+                    list.Add(string.Format("ParameterName：{0,-16}DbType：{1,-16}Value：{2}", dbParameter.ParameterName, dbParameter.DbType, value));
                 }
             }
-            return string.Join("\r\n", list);
+            var sqlString = string.Join(Environment.NewLine, list);
+            this.sqlLog?.Invoke(sqlString + Environment.NewLine);
+            return sqlString;
         }
+
+        private XDataException NewException(Exception innerException, string sql, DbParameter[] parameters = null, CommandType commandType = CommandType.Text)
+        {
+            return new XDataException(innerException)
+            {
+                Parameters = parameters?.ToArray(),
+                ConnectionString = this.ConnectionString,
+                ProviderName = this.ProviderName,
+                CommandType = commandType,
+                SqlString = sql
+            };
+        }
+
         #endregion
 
         /// <summary>
@@ -691,6 +692,7 @@ namespace XData
         {
             this.DatabaseType = null;
             this.DbProviderFactory = null;
+            this.sqlLog = null;
             this.Transaction?.Dispose();
         }
     }

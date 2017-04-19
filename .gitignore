@@ -4,6 +4,10 @@
 
 /Test/bin/Debug
 /Test/obj/Debug
+/Test/bin/Release
+/Test/obj/Release
 /XData/bin/Debug
 /XData/obj/Debug
+/XData/bin/Release
+/XData/obj/Release
 /.vs

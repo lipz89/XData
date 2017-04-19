@@ -71,52 +71,50 @@ namespace XData
         /// <returns>返回实体序列</returns>
         public IEnumerable<T> SqlQuery<T>(Page page, string sql, CommandType commandType, params DbParameter[] parameters)
         {
-            using (DbConnection dbConnection = this.CreateConnection())
+            DbConnection dbConnection = GetConnection();
+            using (DbCommand dbCommand = this.CreateCommand())
             {
-                dbConnection.Open();
-                using (DbCommand dbCommand = this.CreateCommand())
+                dbCommand.Connection = dbConnection;
+                dbCommand.Transaction = Transaction?.Transaction;
+                dbCommand.CommandType = commandType;
+                dbCommand.CommandText = sql;
+                var pars = CheckNullParameter(parameters);
+                if (!parameters.IsNullOrEmpty())
                 {
-                    dbCommand.Connection = dbConnection;
-                    dbCommand.CommandType = commandType;
-                    dbCommand.CommandText = sql;
-                    if (!parameters.IsNullOrEmpty())
-                    {
-                        dbCommand.Parameters.AddRange(CheckNullParameter(parameters));
-                    }
-
-                    IDataReader reader;
-                    var log = this.LogFormatter(new List<string> { sql }, commandType, parameters);
-                    try
-                    {
-                        reader = dbCommand.ExecuteReader(CommandBehavior.CloseConnection);
-                        this.Log(LogLevel.Information, string.Format("SQL语句执行Query成功！{0}{1}", Environment.NewLine, log));
-                    }
-                    catch (Exception ex)
-                    {
-                        string message = string.Format("SQL语句执行失败！{0}{1}", Environment.NewLine, log);
-                        this.Log(LogLevel.Error, message, ex);
-                        throw;
-                    }
-
-                    var skip = page?.Skip;
-                    var take = page?.PageSize;
-                    var skipCount = 0;
-                    var takeCount = 0;
-                    while (reader.Read())
-                    {
-                        if (skip.HasValue && skipCount++ < skip)
-                        {
-                            continue;
-                        }
-                        if (take.HasValue && takeCount++ >= take.Value)
-                        {
-                            yield break;
-                        }
-                        var item = DataFactory.Read<T>(reader);
-                        yield return item;
-                    }
-                    reader.Close();
+                    dbCommand.Parameters.AddRange(pars);
                 }
+
+                IDataReader reader;
+                var log = this.LogFormatter(sql, commandType, parameters);
+                try
+                {
+                    dbConnection.Open();
+                    reader = dbCommand.ExecuteReader(CommandBehavior.CloseConnection);
+                }
+                catch (Exception ex)
+                {
+                    Transaction?.AddException(ex);
+                    throw NewException(ex, sql, pars, commandType);
+                }
+
+                var skip = page?.Skip;
+                var take = page?.PageSize;
+                var skipCount = 0;
+                var takeCount = 0;
+                while (reader.Read())
+                {
+                    if (skip.HasValue && skipCount++ < skip)
+                    {
+                        continue;
+                    }
+                    if (take.HasValue && takeCount++ >= take.Value)
+                    {
+                        yield break;
+                    }
+                    var item = DataFactory.Read<T>(reader);
+                    yield return item;
+                }
+                reader.Close();
             }
         }
 
