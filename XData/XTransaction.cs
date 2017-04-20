@@ -13,7 +13,14 @@ namespace XData
     /// </summary>
     internal class XTransaction : IDisposable
     {
+        #region Fields
+
         private readonly List<Exception> exceptions = new List<Exception>();
+
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// 事务对象
         /// </summary>
@@ -31,6 +38,10 @@ namespace XData
         /// </summary>
         public TransactionState State { get; private set; } = TransactionState.None;
 
+        #endregion
+
+        #region Constructors
+
         /// <summary>
         /// 实例化一个事务对象。
         /// </summary>
@@ -44,6 +55,10 @@ namespace XData
             this.Init(context.CreateConnection());
             context.Transaction = this;
         }
+
+        #endregion
+
+        #region Methods
 
         private void Init(DbConnection dbConnection)
         {
@@ -115,6 +130,10 @@ namespace XData
             exceptions.Add(exception);
         }
 
+        #endregion
+
+        #region Dispose
+
         /// <summary>
         /// 释放<see cref="XTransaction"/>的非托管资源。
         /// </summary>
@@ -131,6 +150,8 @@ namespace XData
                 this.State = TransactionState.None;
             }
         }
+
+        #endregion
     }
 
     /// <summary>

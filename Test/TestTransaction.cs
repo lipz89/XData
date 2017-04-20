@@ -58,17 +58,16 @@ namespace Test
                 MenuLevel = 1,
                 IndexID = 1,
             };
-            using (var db = Program.NewContext())
-            {
-                db.BeginTransaction();
 
-                var row = db.Insert(model, false, x => x.RowVersion);
-                var row2 = db.Delete(model);
-                Console.WriteLine(row);
-                Console.WriteLine(row2);
+            var db = Program.NewContext();
+            db.BeginTransaction();
 
-                db.CompleteTransaction();
-            }
+            var row = db.Insert(model, false, x => x.RowVersion);
+            var row2 = db.Delete(model);
+            Console.WriteLine(row);
+            Console.WriteLine(row2);
+
+            db.CompleteTransaction();
         }
     }
 }

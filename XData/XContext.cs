@@ -13,9 +13,10 @@ namespace XData
     /// <summary>
     /// 数据库上下文
     /// </summary>
-    public sealed partial class XContext : IDisposable
+    public sealed partial class XContext //: IDisposable
     {
         private Action<string> sqlLog;
+        private bool isDisposed = false;
 
         #region Properties
 
@@ -148,8 +149,7 @@ namespace XData
             {
                 dbConnection.Close();
                 dbConnection.Dispose();
-                this.sqlLog?.Invoke(string.Format("{0} [{1}] 释放连接[{2}]。",
-                    DateTime.Now, this.GetHashCode(), dbConnection.GetHashCode()));
+                this.sqlLog?.Invoke(string.Format("{0} [{1}] 释放连接[{2}]。", DateTime.Now, this.GetHashCode(), dbConnection.GetHashCode()));
             }
         }
 
@@ -607,6 +607,7 @@ namespace XData
         {
             if (Transaction == null || Transaction.State == TransactionState.None)
             {
+                Transaction?.Dispose();
                 Transaction = new XTransaction(this);
                 this.sqlLog?.Invoke(string.Format("{0} [{1}] 开启事务[{2}]。",
                     DateTime.Now, this.GetHashCode(), Transaction.GetHashCode()));
@@ -685,15 +686,47 @@ namespace XData
 
         #endregion
 
-        /// <summary>
-        /// 释放<see cref="XContext" />的非托管资源。
-        /// </summary>
-        public void Dispose()
+        #region Dispose
+
+        private void Check()
         {
+            if (isDisposed)
+            {
+                throw Error.Exception("对象资源已释放，无法继续使用。");
+            }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            //释放非托管资源   
             this.DatabaseType = null;
             this.DbProviderFactory = null;
             this.sqlLog = null;
             this.Transaction?.Dispose();
+            this.isDisposed = true;
+
+            if (disposing)
+            {
+                GC.SuppressFinalize(this);
+            }
         }
+
+        ///// <summary>
+        ///// 释放<see cref="XContext" />的非托管资源。
+        ///// </summary>
+        //public void Dispose()
+        //{
+        //    Dispose(true);
+        //}
+
+        /// <summary>
+        /// 析构函数
+        /// </summary>
+        ~XContext()
+        {
+            Dispose(false);
+        }
+
+        #endregion
     }
 }
