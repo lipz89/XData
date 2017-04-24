@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 
 using XData.Common;
 using XData.Core;
@@ -420,6 +421,19 @@ namespace XData
                     parameter.Value = DBNull.Value;
             }
             return parameters;
+        }
+
+        #endregion
+
+        #region 并行
+
+        /// <summary>
+        /// 返回一个数据库并行上下文
+        /// </summary>
+        /// <returns></returns>
+        public ParallelContext AsParallel()
+        {
+            return new ParallelContext(ConnectionString, ProviderName);
         }
 
         #endregion

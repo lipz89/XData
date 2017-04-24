@@ -1,7 +1,5 @@
 ﻿using NUnit.Framework;
 
-using Winning.SPD.SCM.Domain;
-
 using XData;
 
 namespace Test

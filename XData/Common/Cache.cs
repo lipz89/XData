@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace XData.Common
@@ -8,14 +9,14 @@ namespace XData.Common
     /// </summary>
     /// <typeparam name="TKey"></typeparam>
     /// <typeparam name="TValue"></typeparam>
-    internal class Cache<TKey, TValue> : Dictionary<TKey, TValue>
+    internal class Cache<TKey, TValue> : ConcurrentDictionary<TKey, TValue>
     {
         public TValue Get(TKey key, Func<TValue> creator)
         {
             if (!this.ContainsKey(key))
             {
                 var value = creator.Invoke();
-                this.Add(key, value);
+                this.TryAdd(key, value);
             }
             return this[key];
         }
@@ -28,7 +29,7 @@ namespace XData.Common
             }
             else
             {
-                this.Add(key, value);
+                this.TryAdd(key, value);
             }
         }
     }

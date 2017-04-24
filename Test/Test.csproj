@@ -61,6 +61,7 @@
     <Compile Include="TestArea.cs" />
     <Compile Include="TestInsertAndDelete.cs" />
     <Compile Include="TestJoin.cs" />
+    <Compile Include="TestParallel.cs" />
     <Compile Include="TestQuery.cs" />
     <Compile Include="TestSelect.cs" />
     <Compile Include="TestTransaction.cs" />

@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\Error.cs" />
+    <Compile Include="Common\WorkPool.cs" />
     <Compile Include="Common\XDataException.cs" />
     <Compile Include="Core\DatabaseTypes\MySqlDatabaseType.cs" />
     <Compile Include="Core\DatabaseTypes\OracleDatabaseType.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="Meta\MInfo.cs" />
     <Compile Include="Meta\TableMeta.cs" />
     <Compile Include="Core\ExpressionVisitors\ParameterReplaceVisitor.cs" />
+    <Compile Include="ParallelContext.cs" />
     <Compile Include="XBuilder\ComplexQuery.cs" />
     <Compile Include="XBuilder\IQuery.cs" />
     <Compile Include="XBuilder\SqlBuilber.cs" />
