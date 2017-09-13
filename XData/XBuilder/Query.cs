@@ -318,7 +318,17 @@ namespace XData.XBuilder
             var tableName = GetTableNameOrInnerSql();
             var columnName = SqlExpressionVistor.Visit(selector, this);
             var sql = string.Format("SELECT {5}({4}{3}) FROM {0} {1} {2}", tableName, this.GetWherePart(), this.GetOrderPart(), columnName, this.DistinctPart, aggregateName);
-            return (TAggregate)Context.ExecuteScalar(sql, CommandType.Text, this.DbParameters);
+            var value = Context.ExecuteScalar(sql, CommandType.Text, this.DbParameters);
+            if (value == DBNull.Value)
+            {
+                if (typeof(TAggregate).IsValueType && (aggregateName == "SUM" || aggregateName == "AVG"))
+                {
+                    return default(TAggregate);
+                }
+
+                throw new XDataException("聚合结果为DBNull。");
+            }
+            return (TAggregate)value;
         }
         /// <summary>
         /// 查询结果中的最大值
@@ -384,6 +394,19 @@ namespace XData.XBuilder
             {
                 var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
                 return enumer.ToList();
+            }
+        }
+
+        public T FirstOrDefault()
+        {
+            if (this._useCache && _list != null)
+            {
+                return _list.FirstOrDefault();
+            }
+            else
+            {
+                var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
+                return enumer.FirstOrDefault();
             }
         }
         #endregion

@@ -9,8 +9,6 @@ using Newtonsoft.Json;
 
 using NUnit.Framework;
 
-using Winning.SPD.SCM.Domain;
-
 using XData.Meta;
 
 namespace Test
@@ -23,12 +21,12 @@ namespace Test
             MapperConfig.HasKey<Dictionary>(x => x.ID);
             MapperConfig.IgnoreColumn<Dictionary>(x => x.RowVersion);
 
-            MapperConfig.HasTableName<Model>("DictionaryDetail2");
-            MapperConfig.HasKey<Model>(x => x.ID);
-            MapperConfig.HasColumnName<Model>(x => x.code, "Code");
-            MapperConfig.HasColumnName<Model>(x => x.address, "Name");
-            MapperConfig.HasColumnName<Model>(x => x.memo, "Memo");
-            MapperConfig.IgnoreColumn<Model>(x => x.pcode);
+            MapperConfig.HasTableName<Detail>("DictionaryDetail2");
+            MapperConfig.HasKey<Detail>(x => x.ID);
+            MapperConfig.HasColumnName<Detail>(x => x.code, "Code");
+            MapperConfig.HasColumnName<Detail>(x => x.address, "Name");
+            MapperConfig.HasColumnName<Detail>(x => x.memo, "Memo");
+            MapperConfig.IgnoreColumn<Detail>(x => x.pcode);
         }
         [Test, Order(1)]
         public void AddDictionary()
@@ -39,7 +37,7 @@ namespace Test
             var dic = db.GetByKey<Dictionary>(id);
             if (dic != null)
             {
-                db.Delete<Model>(null);
+                db.Delete<Detail>(null);
                 db.Delete<Dictionary>(dic);
             }
             dic = new Dictionary
@@ -57,14 +55,14 @@ namespace Test
             details = DealDetails(details);
             var db = Program.NewContext();
 
-            db.Delete<Model>(null);
+            db.Delete<Detail>(null);
 
             foreach (var detail in details)
             {
-                db.Insert<Model>(detail);
+                db.Insert<Detail>(detail);
             }
 
-            var count = db.Query<Model>().Count();
+            var count = db.Query<Detail>().Count();
             if (count == details.Count)
             {
                 Console.WriteLine("插入{0}条成功。", count);
@@ -75,7 +73,7 @@ namespace Test
             }
         }
 
-        public List<Model> LoadDetails()
+        public List<Detail> LoadDetails()
         {
             var str = string.Empty;
             var file = @"D:\sqlscripts\地区代码\地区.json";
@@ -83,18 +81,18 @@ namespace Test
             {
                 str = reader.ReadToEnd();
             }
-            var details = JsonConvert.DeserializeObject<List<Model>>(str);
+            var details = JsonConvert.DeserializeObject<List<Detail>>(str);
 
             return details;
         }
 
-        private List<Model> DealDetails(List<Model> details)
+        private List<Detail> DealDetails(List<Detail> details)
         {
             var id = Guid.Parse("E6E3763F-A8DF-491A-8CAC-191B228D7624");
 
             var area86 = details.Where(x => x.memo != null).OrderBy(x => x.code);
 
-            var result = new List<Model>();
+            var result = new List<Detail>();
             var indexId = 1;
             foreach (var model in area86)
             {
@@ -135,7 +133,7 @@ namespace Test
             var id = Guid.Parse("E6E3763F-A8DF-491A-8CAC-191B228D7624");
             var db = Program.NewContext();
             var st = Stopwatch.StartNew();
-            var details = db.Query<Model>().Where(x => x.DictionaryID == id).ToList();
+            var details = db.Query<Detail>().Where(x => x.DictionaryID == id).ToList();
 
             var time = st.ElapsedMilliseconds / 1000.0;
             Console.WriteLine("查询{0}条数据，花费时间{1}秒", details.Count, time);
@@ -186,9 +184,9 @@ namespace Test
 
         }
 
-        private Dictionary<string, Func<Model, bool>> GetPage()
+        private Dictionary<string, Func<Detail, bool>> GetPage()
         {
-            return new Dictionary<string, Func<Model, bool>>
+            return new Dictionary<string, Func<Detail, bool>>
             {
                 {"A-G",x=>"ABCDEFG".Contains( x.memo) },
                 {"H-K",x=>"HIJK".Contains( x.memo) },
@@ -196,31 +194,5 @@ namespace Test
                 {"T-Z",x=>"TUVWXYZ".Contains( x.memo) },
             };
         }
-    }
-
-    public class Model
-    {
-        public Model()
-        {
-            ID = Guid.NewGuid();
-            DictionaryID = Guid.Parse("E6E3763F-A8DF-491A-8CAC-191B228D7624");
-        }
-        public Guid ID { get; set; }
-        public string code { get; set; }
-        public string address { get; set; }
-        public string pcode { get; set; }
-        public string memo { get; set; }
-        public Guid? DictionaryID { get; set; }
-        public int IndexID { get; set; }
-        public bool IsSys { get; set; }
-        public Guid? ParentID { get; set; }
-        public string Status { get; set; }
-        public bool IsDeleted { get; set; }
-    }
-
-    public class City86
-    {
-        public string code { get; set; }
-        public string address { get; set; }
     }
 }

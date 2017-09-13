@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 using NUnit.Framework;
-
-using Winning.SPD.SCM.Domain;
 
 using XData.Meta;
 
@@ -33,8 +30,8 @@ namespace Test
 
             var row2 = db.Delete(model);
 
-            Console.WriteLine(row);
-            Console.WriteLine(row2);
+            Assert.IsTrue(row);
+            Assert.IsTrue(row2);
         }
         [Test]
         public void Test2()
@@ -54,32 +51,12 @@ namespace Test
 
             var row2 = db.Delete(model, x => x.ID);
 
-            Console.WriteLine(row);
-            Console.WriteLine(row2);
+            Assert.IsTrue(row);
+            Assert.IsTrue(row2);
         }
+
         [Test]
         public void Test3()
-        {
-            var guid = Guid.NewGuid();
-            var model = new Menu()
-            {
-                ID = guid,
-                Name = "测试",
-                Code = "Test",
-                MenuLevel = 1,
-                IndexID = 1,
-            };
-            var db = Program.NewContext();
-
-            var row = db.Insert(model, false, x => x.RowVersion);
-
-            var row2 = db.Delete<Menu>(x => x.ID == guid);
-
-            Console.WriteLine(row);
-            Console.WriteLine(row2);
-        }
-        [Test]
-        public void Test4()
         {
             var guid = Guid.NewGuid();
             var dic = new Dictionary<string, object>()
@@ -97,8 +74,32 @@ namespace Test
 
             var row2 = db.Delete<Menu>(x => x.ID == guid);
 
-            Console.WriteLine(row);
-            Console.WriteLine(row2);
+            Assert.IsTrue(row);
+            Assert.AreEqual(row2, 1);
+        }
+        [Test]
+        public void Test4()
+        {
+            MapperConfig.HasKey<Menu>(x => x.ID);
+            MapperConfig.IgnoreColumn<Menu>(x => x.RowVersion);
+
+            var model = new Menu()
+            {
+                ID = Guid.NewGuid(),
+                Name = "测试",
+                Code = "Test",
+                MenuLevel = 1,
+                IndexID = 1,
+            };
+            var db = Program.NewContext();
+            db.SqlLog = Console.WriteLine;
+
+            var row = db.Insert(model);
+
+            var row2 = db.Delete(model);
+
+            Assert.IsTrue(row);
+            Assert.IsTrue(row2);
         }
     }
 }

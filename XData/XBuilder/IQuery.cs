@@ -137,6 +137,12 @@ namespace XData.XBuilder
         List<T> ToList();
 
         /// <summary>
+        /// 将查询结果中的第一条记录返回
+        /// </summary>
+        /// <returns>返回当前查询的第一条结果</returns>
+        T FirstOrDefault();
+
+        /// <summary>
         /// 提取查询的分页数据
         /// </summary>
         /// <param name="pageIndex">页索引</param>

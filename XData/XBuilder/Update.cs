@@ -158,6 +158,43 @@ namespace XData.XBuilder
         /// </summary>
         /// <param name="context"></param>
         /// <param name="newEntity"></param>
+        /// <param name="include">包含或者排除，true包含表示仅更新指定的字段，false排除表示不更新指定的字段</param>
+        /// <param name="fields"></param>
+        internal Update(XContext context, T newEntity, bool include, Expression<Func<T, object>>[] fields)
+            : this(context)
+        {
+            if (newEntity == null)
+            {
+                throw Error.ArgumentNullException(nameof(newEntity));
+            }
+
+            var exceptFields = fields.Select(x => x.GetPropertyName());
+            var columns = tableMeta.Columns.Where(x => x.CanUpdate);
+            columns = columns.Where(x => exceptFields.Contains(x.Member.Name) == include).ToList();
+            foreach (var column in columns)
+            {
+                var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
+                if (memAccess != null)
+                {
+                    var newValue = memAccess(newEntity);
+
+                    this.setterString.Add(string.Format("{0}={1}",
+                        EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                    this._parameters.Add(newValue);
+                }
+            }
+            if (!this._parameters.Any())
+            {
+                throw Error.Exception("必须更新至少一个字段。");
+            }
+            AddConditionByKey(newEntity);
+        }
+
+        /// <summary>
+        /// 根据指定实体构造一个更新指定字段的命令
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="newEntity"></param>
         /// <param name="expression"></param>
         /// <param name="include">包含或者排除，true包含表示仅更新指定的字段，false排除表示不更新指定的字段</param>
         /// <param name="fields"></param>

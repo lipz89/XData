@@ -4,8 +4,6 @@ using System.Linq;
 
 using NUnit.Framework;
 
-using Winning.SPD.SCM.Domain;
-
 using XData.Meta;
 
 namespace Test
@@ -21,40 +19,55 @@ namespace Test
         public void Test()
         {
             var db = Program.NewContext();
-            var menu = db.Query<Menu>().OrderBy(x => x.Action).ToList().FirstOrDefault();
 
-            var id = menu.ID;
-            Console.WriteLine(id);
-            Console.WriteLine(menu.Name);
+            var id = Guid.NewGuid();
+            var model = new Menu()
+            {
+                ID = id,
+                Name = "测试",
+                Code = "TestUpdate",
+                MenuLevel = 100,
+                IndexID = 1,
+            };
+            var row = db.Insert(model);
 
-            var name = menu.Name + "^^";
+            Assert.IsTrue(row);
 
-            menu.CreateTime = DateTime.Now;
-            menu.CreateUserName = "system";
-            menu.LastUpdateTime = DateTime.Now;
-            menu.UpdateUserName = "Test";
-            db.Update(menu, false, x => x.RowVersion, x => x.Name, x => x.Code, x => x.Action, x => x.Controller, x => x.IndexID, x => x.Memo, x => x.MenuLevel, x => x.ParentID, x => x.Url);
+
+            var menu = db.GetFirstOrDefault<Menu>(x => x.ID == id);
+
+            Assert.IsNotNull(menu);
+            db.SqlLog = Console.WriteLine;
+
+            var name = "测试^^";
+            menu.Name = name;
+            var flag = db.Update(menu, false, x => x.Code, x => x.Action, x => x.Controller, x => x.IndexID, x => x.Memo, x => x.MenuLevel);
+
+            Assert.IsTrue(flag);
 
             menu = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
-            Console.WriteLine(menu.Name);
+            Assert.AreEqual(menu.Name, name);
 
+            var rowint = db.Update<Menu>(new Dictionary<string, object> { { "Name", name } }, x => x.ID == id);
+            Assert.AreEqual(rowint, 1);
 
-            db.Update<Menu>(new Dictionary<string, object> { { "Name", name } }, x => x.ID == id);
+            menu = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
+            Assert.AreEqual(menu.Name, name);
 
-            var menu2 = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
-            Console.WriteLine(menu2.Name);
+            name = "改啊啊改噶";
+            menu.Name = name;
+            rowint = db.Update(menu, x => x.ID == id, true, x => x.Name);
+            Assert.AreEqual(rowint, 1);
 
-            menu2.Name = "改啊啊改噶";
-            db.Update(menu2, x => x.ID == id, true, x => x.Name);
+            menu = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
+            Assert.AreEqual(menu.Name, name);
 
-            menu2 = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
-            Console.WriteLine(menu2.Name);
+            var menu2 = new Menu() { Code = "TestUpdate", MenuLevel = 100, IndexID = 1, Name = "目录管理" };
+            flag = db.Update(menu, menu2);
+            Assert.IsTrue(flag);
 
-            menu2.Name = "目录管理";
-            db.Update(menu, menu2);
-
-            menu2 = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
-            Console.WriteLine(menu2.Name);
+            menu = db.Query<Menu>().Where(x => x.ID == id).ToList().FirstOrDefault();
+            Assert.AreEqual(menu.Name, menu2.Name);
         }
     }
 }

@@ -57,59 +57,5 @@ namespace XData.Core
         {
             return obj == DBNull.Value ? null : obj;
         }
-
-        //private Func<Dictionary<string, object>, T> objectMapper;
-
-        //private Func<Dictionary<string, object>, T> GetObjectMapper()
-        //{
-        //    if (objectMapper == null)
-        //    {
-        //        var constructor = tableMeta.Type.GetDefaultCtor()
-        //            ?? tableMeta.Type.GetConstructors().FirstOrDefault();
-        //        if (constructor == null)
-        //        {
-        //            throw Error.Exception("类型" + tableMeta.Type + "没有公开的构造函数。");
-        //        }
-        //        var columns = tableMeta.Columns.ToList();
-        //        var parameter = constructor.GetParameters();
-        //        var newArgs = new Expression[parameter.Length];
-        //        var param = Expression.Parameter(typeof(Dictionary<string, object>));
-        //        for (int i = 0; i < parameter.Length; i++)
-        //        {
-        //            var t = parameter[i].ParameterType;
-        //            var name = parameter[i].Name;
-        //            var column = columns.FirstOrDefault(x => x.Name.IsSameField(name));
-        //            Expression val;
-        //            if (column != null)
-        //            {
-        //                var key = Expression.Constant(column.ColumnName);
-        //                var ife = Expression.Call(param, Constans.DictionaryContainsKey, key);
-        //                var value = Expression.MakeIndex(param, Constans.DictionaryIndex, new[] { key });
-        //                val = Expression.Condition(ife, Expression.Convert(value, t), Expression.Default(t));
-        //                columns.Remove(column);
-        //            }
-        //            else
-        //            {
-        //                val = Expression.Default(t);
-        //            }
-        //            newArgs[i] = val;
-        //        }
-        //        var obj = Expression.New(constructor, newArgs);
-        //        var binds = new List<MemberAssignment>();
-        //        foreach (var column in columns.Where(x => x.CanWrite()))
-        //        {
-        //            var key = Expression.Constant(column.ColumnName);
-        //            var ife = Expression.Call(param, Constans.DictionaryContainsKey, key);
-        //            var value = Expression.MakeIndex(param, Constans.DictionaryIndex, new[] { key });
-        //            var condition = Expression.Condition(ife, Expression.Convert(value, column.Type), Expression.Default(column.Type));
-        //            var bind = Expression.Bind(column.Member, condition);
-        //            binds.Add(bind);
-        //        }
-        //        var init = Expression.MemberInit(obj, binds);
-        //        var lambda = Expression.Lambda<Func<Dictionary<string, object>, T>>(init, param);
-        //        objectMapper = lambda.Compile();
-        //    }
-        //    return objectMapper;
-        //}
     }
 }

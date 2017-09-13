@@ -39,8 +39,6 @@ namespace XData
         /// </summary>
         internal DatabaseType DatabaseType { get; private set; }
 
-        internal XTransaction Transaction { get; set; }
-
         /// <summary>
         /// sql语句监视方法
         /// </summary>
@@ -137,15 +135,10 @@ namespace XData
             }
             return result;
         }
-
-        private DbConnection GetConnection()
+        
+        private void CloseConnection(DbConnection dbConnection)
         {
-            return Transaction?.Connection ?? this.CreateConnection();
-        }
-
-        private void CloseConnectionOrNot(DbConnection dbConnection)
-        {
-            if (dbConnection != null && dbConnection.State != ConnectionState.Closed && Transaction == null)
+            if (dbConnection != null && dbConnection.State != ConnectionState.Closed)
             {
                 dbConnection.Close();
                 dbConnection.Dispose();
@@ -257,11 +250,10 @@ namespace XData
         public int ExecuteNonQuery(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             int result = 0;
-            DbConnection dbConnection = GetConnection();
+            DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
-                dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
@@ -280,12 +272,11 @@ namespace XData
                 }
                 catch (Exception ex)
                 {
-                    Transaction?.AddException(ex);
                     throw NewException(ex, sql, pars, commandType);
                 }
                 finally
                 {
-                    CloseConnectionOrNot(dbConnection);
+                    CloseConnection(dbConnection);
                 }
             }
 
@@ -300,18 +291,11 @@ namespace XData
         public int ExecuteNonQuery(IList<string> sqls)
         {
             int num = 0;
-            var flagNewTransaction = false;
-            if (Transaction == null)
-            {
-                Transaction = new XTransaction(this);
-                flagNewTransaction = true;
-            }
-            DbConnection dbConnection = GetConnection();
+            DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
                 dbCommand.CommandType = CommandType.Text;
-                dbCommand.Transaction = Transaction?.Transaction;
                 var log = string.Join(Environment.NewLine, sqls);
                 string currentSql = null;
                 try
@@ -326,26 +310,14 @@ namespace XData
                         dbCommand.CommandText = current;
                         num += dbCommand.ExecuteNonQuery();
                     }
-                    if (flagNewTransaction)
-                    {
-                        Transaction.Commit();
-                    }
                 }
                 catch (Exception ex)
                 {
-                    if (flagNewTransaction)
-                    {
-                        Transaction.Rollback();
-                    }
-                    else
-                    {
-                        Transaction?.AddException(ex);
-                    }
                     throw NewException(ex, currentSql);
                 }
                 finally
                 {
-                    CloseConnectionOrNot(dbConnection);
+                    CloseConnection(dbConnection);
                 }
             }
 
@@ -397,12 +369,11 @@ namespace XData
         public object ExecuteScalar(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             object result = null;
-            DbConnection dbConnection = GetConnection();
+            DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
                 dbCommand.CommandType = commandType;
-                dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
                 if (!parameters.IsNullOrEmpty())
@@ -420,12 +391,11 @@ namespace XData
                 }
                 catch (Exception ex)
                 {
-                    Transaction?.AddException(ex);
                     throw NewException(ex, sql, pars, commandType);
                 }
                 finally
                 {
-                    CloseConnectionOrNot(dbConnection);
+                    CloseConnection(dbConnection);
                 }
             }
 
@@ -477,11 +447,10 @@ namespace XData
         public DataSet GetDataSet(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             DataSet dataSet = new DataSet();
-            DbConnection dbConnection = GetConnection();
+            DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
-                dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
@@ -500,7 +469,6 @@ namespace XData
                     }
                     catch (Exception ex)
                     {
-                        Transaction?.AddException(ex);
                         throw NewException(ex, sql, pars, commandType);
                     }
                     for (int j = 0; j < dataSet.Tables.Count; j++)
@@ -511,7 +479,7 @@ namespace XData
                         }
                     }
                 }
-                CloseConnectionOrNot(dbConnection);
+                CloseConnection(dbConnection);
             }
             return dataSet;
         }
@@ -561,11 +529,10 @@ namespace XData
         public DataTable GetDataTable(string sql, CommandType commandType, params DbParameter[] parameters)
         {
             DataTable dataTable = new DataTable();
-            DbConnection dbConnection = GetConnection();
+            DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
-                dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
@@ -584,7 +551,6 @@ namespace XData
                     }
                     catch (Exception ex)
                     {
-                        Transaction?.AddException(ex);
                         throw NewException(ex, sql, pars, commandType);
                     }
                     if (string.IsNullOrWhiteSpace(dataTable.TableName))
@@ -592,44 +558,10 @@ namespace XData
                         dataTable.TableName = "Table1";
                     }
                 }
-                CloseConnectionOrNot(dbConnection);
+                CloseConnection(dbConnection);
             }
             return dataTable;
         }
-        #endregion
-
-        #region Transaction
-
-        /// <summary>
-        /// 在当前数据库上下文中开启事务
-        /// </summary>
-        public void BeginTransaction()
-        {
-            if (Transaction == null || Transaction.State == TransactionState.None)
-            {
-                Transaction?.Dispose();
-                Transaction = new XTransaction(this);
-                this.sqlLog?.Invoke(string.Format("{0} [{1}] 开启事务[{2}]。",
-                    DateTime.Now, this.GetHashCode(), Transaction.GetHashCode()));
-            }
-        }
-
-        /// <summary>
-        /// 完成当前数据库上下文的事务
-        /// </summary>
-        /// <remarks>如果当前事务执行期间没有发生异常，提交事务，否则回滚事务。</remarks>
-        public void CompleteTransaction()
-        {
-            if (Transaction != null && Transaction.State != TransactionState.None)
-            {
-                this.sqlLog?.Invoke(string.Format("{0} [{1}] 完成事务[{2}]。",
-                    DateTime.Now, this.GetHashCode(), Transaction.GetHashCode()));
-                this.sqlLog?.Invoke(string.Format("{0} [{1}] 释放连接[{2}]。",
-                    DateTime.Now, this.GetHashCode(), Transaction.Connection.GetHashCode()));
-                Transaction.Dispose();
-            }
-        }
-
         #endregion
 
         #region Log
@@ -702,7 +634,6 @@ namespace XData
             this.DatabaseType = null;
             this.DbProviderFactory = null;
             this.sqlLog = null;
-            this.Transaction?.Dispose();
             this.isDisposed = true;
 
             if (disposing)

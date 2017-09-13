@@ -72,11 +72,10 @@ namespace XData
         /// <returns>返回实体序列</returns>
         public IEnumerable<T> SqlQuery<T>(Page page, string sql, CommandType commandType, params DbParameter[] parameters)
         {
-            DbConnection dbConnection = GetConnection();
+            DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
-                dbCommand.Transaction = Transaction?.Transaction;
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
@@ -89,12 +88,14 @@ namespace XData
                 var log = this.LogFormatter(sql, commandType, parameters);
                 try
                 {
-                    dbConnection.Open();
+                    if (dbConnection.State == ConnectionState.Closed)
+                    {
+                        dbConnection.Open();
+                    }
                     reader = dbCommand.ExecuteReader(CommandBehavior.CloseConnection);
                 }
                 catch (Exception ex)
                 {
-                    Transaction?.AddException(ex);
                     throw NewException(ex, sql, pars, commandType);
                 }
 
@@ -148,8 +149,7 @@ namespace XData
             {
                 query = query.Where(condition);
             }
-            query = query.Top(1);
-            return query.ToList().FirstOrDefault();
+            return query.FirstOrDefault();
         }
 
         /// <summary>
@@ -270,7 +270,7 @@ namespace XData
         }
 
         /// <summary>
-        /// 根据一个实体一个条件更新满足条件的记录
+        /// 根据一个实体和实体的主键更新记录
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="newEntity">该实体的字段值为需要更新的字段值</param>
@@ -279,7 +279,7 @@ namespace XData
         /// <returns>成功返回true，否则返回false</returns>
         public bool Update<T>(T newEntity, bool include = false, params Expression<Func<T, object>>[] fields)
         {
-            return new Update<T>(this, newEntity, null, include, fields).Execute() > 0;
+            return new Update<T>(this, newEntity, include, fields).Execute() > 0;
         }
 
         /// <summary>
@@ -421,19 +421,6 @@ namespace XData
                     parameter.Value = DBNull.Value;
             }
             return parameters;
-        }
-
-        #endregion
-
-        #region 并行
-
-        /// <summary>
-        /// 返回一个数据库并行上下文
-        /// </summary>
-        /// <returns></returns>
-        public ParallelContext AsParallel()
-        {
-            return new ParallelContext(ConnectionString, ProviderName);
         }
 
         #endregion

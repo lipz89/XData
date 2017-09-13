@@ -1,36 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.EntityClient;
-using System.Data.Objects;
-using System.Data.Objects.DataClasses;
-using System.Data.SqlClient;
+using System.Configuration;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-
-using NUnit.Framework;
-
-using Winning.SPD.SCM.Domain;
 
 using XData;
-using XData.Extentions;
 
 namespace Test
 {
     class Program
     {
+        static Program()
+        {
+            var connCfg = ConfigurationManager.ConnectionStrings["test"];
+
+            if (connCfg != null)
+            {
+                SqlConnectionString = connCfg.ConnectionString;
+                SqlProvider = connCfg.ProviderName;
+            }
+        }
         static void Main(string[] args)
         {
-            new TestArea().TestToJson();
+            new TestEnumer().Test(5, 10);
 
             Console.Read();
         }
 
-        public const string SqlConnectionString = "data source=.;initial catalog=DMSP;user id=sa;password=111111;MultipleActiveResultSets=True";
-        
-        public const string SqlProvider = "System.Data.SqlClient";
+        public static string SqlConnectionString;
+
+        public static string SqlProvider;
 
         public static XContext NewContext()
         {
@@ -38,26 +36,44 @@ namespace Test
         }
     }
 
-    class TestModel
-    {
-        public TestModel(int id, int v)
-        {
-            ID = id;
-        }
-        public int ID { get; set; }
-        public int Index { get; set; }
-        public string Text { get; set; }
-    }
 
-    class SubMenu
+    public class TestEnumer
     {
-        public SubMenu(string name)
+        private readonly int count;
+
+        public TestEnumer(int count = 100)
         {
-            this.Name = name;
+            this.count = count;
         }
-        public string Action { get; set; }
-        public string Code { get; set; }
-        public string Controller { get; set; }
-        public string Name { get; set; }
+        public IEnumerable<int> Get()
+        {
+            for (int i = 0; i < count; i++)
+            {
+                yield return GetResult(i);
+            }
+        }
+
+        public void Test(int skip, int take)
+        {
+            var enumer = Get();
+            var e20 = enumer.Skip(skip).Take(take);
+
+            var lst = new List<int>();
+            foreach (var i in e20)
+            {
+                lst.Add(i);
+            }
+
+            foreach (var i in lst)
+            {
+                Console.Write(i + "   ");
+            }
+        }
+
+        private int GetResult(int i)
+        {
+            Console.WriteLine(i+" _ ");
+            return i + 1;
+        }
     }
 }

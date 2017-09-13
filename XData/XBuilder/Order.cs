@@ -40,7 +40,7 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(expression));
             }
 
-            sorts.Add(expression, isAsc);
+            sorts.Add(expression.Body, isAsc);
         }
 
         /// <summary>

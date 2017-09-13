@@ -15,7 +15,7 @@ namespace XData.XBuilder
     /// </summary>
     /// <typeparam name="TInner"></typeparam>
     /// <typeparam name="T"></typeparam>
-    internal class ComplexQuery<TInner, T> : Query<T>
+    internal sealed class ComplexQuery<TInner, T> : Query<T>
     {
         #region Fields
         private readonly Query<TInner> innerQuery;
