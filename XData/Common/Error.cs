@@ -27,5 +27,10 @@ namespace XData.Common
             return new NotSupportedException(message);
         }
 
+        public static Exception InvalidCastException(string message)
+        {
+            return new InvalidCastException(message);
+        }
+
     }
 }

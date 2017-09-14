@@ -54,14 +54,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Models\Child.cs" />
     <Compile Include="Models\Detail.cs" />
     <Compile Include="Models\Dictionary.cs" />
     <Compile Include="Models\Menu.cs" />
+    <Compile Include="Models\Parent.cs" />
+    <Compile Include="Models\Tree.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestArea.cs" />
     <Compile Include="TestInsertAndDelete.cs" />
-    <Compile Include="TestJoin.cs" />
+    <Compile Include="TestInclude.cs" />
     <Compile Include="Models\TestModel.cs" />
     <Compile Include="TestQuery.cs" />
     <Compile Include="TestSelect.cs" />

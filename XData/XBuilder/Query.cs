@@ -31,6 +31,7 @@ namespace XData.XBuilder
         private LambdaExpression selector;
         private string _wherePart;
         private string _orderPart;
+        private List<IInclude<T>> includes;
 
         #endregion
 
@@ -245,6 +246,92 @@ namespace XData.XBuilder
         }
         #endregion
 
+        #region Include
+
+        private Expression<Func<T1, TKey>> GetKeySelector<T1, TKey>()
+        {
+            var key = MapperConfig.GetKeyMeta<T1>();
+            if (key != null && key.Member != null && typeof(TKey).IsAssignableFrom(key.Member.GetMemberType()))
+            {
+                return key.Member.GetMemberProperty<T1, TKey>();
+            }
+
+            return null;
+        }
+
+        private List<T> FillInclude(List<T> list)
+        {
+            if (!includes.IsNullOrEmpty())
+            {
+                foreach (var include in includes)
+                {
+                    list = include.Invoke(list);
+                }
+            }
+
+            return list;
+        }
+        private T FillInclude(T item)
+        {
+            if (!includes.IsNullOrEmpty())
+            {
+                foreach (var include in includes)
+                {
+                    item = include.Invoke(item);
+                }
+            }
+
+            return item;
+        }
+
+        public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, TRelaction> action)
+        {
+            if (property == null) { throw Error.ArgumentNullException(nameof(property)); }
+            if (tkey == null) { throw Error.ArgumentNullException(nameof(tkey)); }
+            if (relectionKey == null) { throw Error.ArgumentNullException(nameof(relectionKey)); }
+            if (action == null) { throw Error.ArgumentNullException(nameof(action)); }
+
+            includes = includes ?? new List<IInclude<T>>();
+            includes.Add(new IncludePropertyInfo<T, TRelaction, TKey>(Context, tkey, relectionKey, action));
+            this._list = null;
+            return this;
+        }
+
+        public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Action<T, TRelaction> action)
+        {
+            return this.Include<TRelaction, TKey>(property, tkey, GetKeySelector<TRelaction, TKey>(), action);
+        }
+
+        public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, TRelaction> action)
+        {
+            return this.Include<TRelaction, TKey>(property, GetKeySelector<T, TKey>(), relectionKey, action);
+        }
+
+        public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<T, TKey>> tkey, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, IEnumerable<TRelaction>> action)
+        {
+            if (property == null) { throw Error.ArgumentNullException(nameof(property)); }
+            if (tkey == null) { throw Error.ArgumentNullException(nameof(tkey)); }
+            if (relectionKey == null) { throw Error.ArgumentNullException(nameof(relectionKey)); }
+            if (action == null) { throw Error.ArgumentNullException(nameof(action)); }
+
+            includes = includes ?? new List<IInclude<T>>();
+            includes.Add(new IncludeCollectionInfo<T, TRelaction, TKey>(Context, tkey, relectionKey, action));
+            this._list = null;
+            return this;
+        }
+
+        public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<T, TKey>> tkey, Action<T, IEnumerable<TRelaction>> action)
+        {
+            return this.Include<TRelaction, TKey>(property, tkey, GetKeySelector<TRelaction, TKey>(), action);
+        }
+
+        public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, IEnumerable<TRelaction>> action)
+        {
+            return this.Include<TRelaction, TKey>(property, GetKeySelector<T, TKey>(), relectionKey, action);
+        }
+
+        #endregion
+
         #region Select
 
         /// <summary>
@@ -381,19 +468,15 @@ namespace XData.XBuilder
         /// <returns></returns>
         public List<T> ToList()
         {
-            if (this._useCache)
+            if (this._useCache && _list != null)
             {
-                if (_list == null)
-                {
-                    var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
-                    _list = enumer.ToList();
-                }
                 return _list.ToList();
             }
             else
             {
                 var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
-                return enumer.ToList();
+                _list = enumer.ToList();
+                return FillInclude(_list);
             }
         }
 
@@ -406,7 +489,7 @@ namespace XData.XBuilder
             else
             {
                 var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
-                return enumer.FirstOrDefault();
+                return FillInclude(enumer.FirstOrDefault());
             }
         }
         #endregion
@@ -454,7 +537,7 @@ namespace XData.XBuilder
                     PageSize = page.PageSize,
                     PageIndex = page.PageIndex,
                     TotalRecords = total,
-                    Items = datas
+                    Items = FillInclude(datas)
                 };
             }
         }

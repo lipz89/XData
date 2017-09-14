@@ -161,6 +161,18 @@ namespace XData.XBuilder
         /// </summary>
         /// <returns>返回sql语句字符串</returns>
         string ToSql();
+
+        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Expression<Func<TRelaction, TKey>> relectionKey,Action<T,TRelaction> action);
+
+        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Action<T, TRelaction> action);
+
+        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, TRelaction> action);
+
+        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<T, TKey>> tkey, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, IEnumerable<TRelaction>> action);
+
+        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<T, TKey>> tkey, Action<T, IEnumerable<TRelaction>> action);
+
+        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, IEnumerable<TRelaction>> action);
     }
 
     /// <summary>
