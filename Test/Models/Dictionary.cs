@@ -2,7 +2,12 @@ using System;
 
 namespace Test
 {
-    public class Dictionary
+    public interface IRowVersion
+    {
+        byte[] RowVersion { get; set; }
+    }
+
+    public class Dictionary : IRowVersion
     {
         public Guid ID { get; set; }
         public string Name { get; set; }

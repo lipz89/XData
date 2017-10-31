@@ -58,6 +58,7 @@
     <Compile Include="Models\Detail.cs" />
     <Compile Include="Models\Dictionary.cs" />
     <Compile Include="Models\Menu.cs" />
+    <Compile Include="Models\MyTable.cs" />
     <Compile Include="Models\Parent.cs" />
     <Compile Include="Models\Tree.cs" />
     <Compile Include="Program.cs" />

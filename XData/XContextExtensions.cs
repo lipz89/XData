@@ -359,6 +359,56 @@ namespace XData
             return new Insert<T>(this, fieldValues).Execute() > 0;
         }
 
+        #region InsertList
+        /// <summary>
+        /// 插入多条记录
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="entities"></param>
+        /// <returns></returns>
+        public int Insert<T>(IEnumerable<T> entities)
+        {
+            return new InsertList<T>(this, entities).Execute();
+        }
+
+        /// <summary>
+        /// 根据实体和指定的字段插入多条记录
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="entities">要插入的实体</param>
+        /// <param name="fields">要插入的字段</param>
+        /// <returns>成功返回true，否则返回false</returns>
+        public int Insert<T>(IEnumerable<T> entities, params Expression<Func<T, object>>[] fields)
+        {
+            return new InsertList<T>(this, entities, true, fields).Execute();
+        }
+
+        /// <summary>
+        /// 根据实体和指定的字段插入一条记录
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="entities">要插入的实体</param>
+        /// <param name="include">包含或者排除，true包含表示仅插入指定的字段，false排除表示不插入指定的字段</param>
+        /// <param name="fields">指定的字段</param>
+        /// <returns>成功返回true，否则返回false</returns>
+        public int Insert<T>(IEnumerable<T> entities, bool include = false, params Expression<Func<T, object>>[] fields)
+        {
+            return new InsertList<T>(this, entities, include, fields).Execute();
+        }
+
+        /// <summary>
+        /// 根据指定的字段和值插入一条记录
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="fieldValues">要插入的字段和值的字典</param>
+        /// <returns>成功返回true，否则返回false</returns>
+        public int Insert<T>(IEnumerable<IDictionary<string, object>> fieldValues)
+        {
+            return new InsertList<T>(this, fieldValues).Execute() ;
+        }
+
+        #endregion
+
         #endregion
 
         #region DeleteBuilder

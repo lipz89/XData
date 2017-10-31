@@ -19,7 +19,6 @@ namespace Test
         {
             MapperConfig.HasTableName<Dictionary>("Dictionary2");
             MapperConfig.HasKey<Dictionary>(x => x.ID);
-            MapperConfig.IgnoreColumn<Dictionary>(x => x.RowVersion);
 
             MapperConfig.HasTableName<Detail>("DictionaryDetail2");
             MapperConfig.HasKey<Detail>(x => x.ID);
@@ -27,6 +26,10 @@ namespace Test
             MapperConfig.HasColumnName<Detail>(x => x.address, "Name");
             MapperConfig.HasColumnName<Detail>(x => x.memo, "Memo");
             MapperConfig.IgnoreColumn<Detail>(x => x.pcode);
+
+            MapperConfig.IgnoreColumn<Dictionary>(x => x.RowVersion);
+
+            MapperConfig.IgnoreColumn<Detail>(x => x.RowVersion);
         }
         [Test, Order(1)]
         public void AddDictionary()

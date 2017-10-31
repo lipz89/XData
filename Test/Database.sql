@@ -100,6 +100,15 @@ CREATE TABLE [dbo].Child(
 GO
 
 
+CREATE TABLE MyTable(
+	ID INT IDENTITY(1,1) PRIMARY KEY,
+	Name VARCHAR(20)
+)
+
+go
+
+
+
 
 INSERT INTO dbo.Parent ( ID, Name, Code )
 SELECT 1,'类型','Type'

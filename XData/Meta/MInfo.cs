@@ -32,17 +32,21 @@ namespace XData.Meta
 
         public override int GetHashCode()
         {
-            return Type.MetadataToken ^ Member.MetadataToken ^ Constans.HashCodeXOr;
+            return Type.MetadataToken ^ Member.Name.GetHashCode() ^ Member.GetType().GetHashCode() ^ Constans.HashCodeXOr;
         }
 
         public override bool Equals(object obj)
         {
-            var other = obj as MInfo;
-            if (other == null)
-                return false;
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj is MInfo)
+            {
+                return this.GetHashCode() == obj.GetHashCode();
+            }
 
-            return Type.MetadataToken == other.Type.MetadataToken
-                   && Member.MetadataToken == other.Member.MetadataToken;
+            return false;
         }
 
         #endregion

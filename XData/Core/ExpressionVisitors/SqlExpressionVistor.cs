@@ -168,6 +168,22 @@ namespace XData.Core.ExpressionVisitors
         {
             var lastNode = nodeTypes.Peek();
             var member = node.Member;
+
+            if (member.DeclaringType.IsGenericType && member.DeclaringType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                if (member.Name == "Value")
+                {
+                    return Visit(node.Expression);
+                }
+                else if (member.Name == "HasValue")
+                {
+                    sql += "(";
+                    var n = Visit(node.Expression);
+                    sql += " IS NOT NULL)";
+                    return n;
+                }
+            }
+
             object value;
             var hasValue = TryGetExpressionValue(node, out value);
             var namedType = typeVisitor.Get(node.Expression.Type);
@@ -450,6 +466,17 @@ namespace XData.Core.ExpressionVisitors
         }
         private bool TryGetExpressionValue(Expression exp, out object value)
         {
+            if (exp.NodeType == ExpressionType.Convert)
+            {
+                var e = exp as UnaryExpression;
+                if (e.Type.NonNullableType() == e.Operand.Type.NonNullableType())
+                {
+                    if (TryGetExpressionValue(e.Operand, out value))
+                    {
+                        return true;
+                    }
+                }
+            }
             if (exp is ConstantExpression)
             {
                 value = (exp as ConstantExpression).Value;

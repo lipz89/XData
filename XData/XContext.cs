@@ -135,7 +135,7 @@ namespace XData
             }
             return result;
         }
-        
+
         private void CloseConnection(DbConnection dbConnection)
         {
             if (dbConnection != null && dbConnection.State != ConnectionState.Closed)
@@ -257,11 +257,11 @@ namespace XData
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
-                if (!parameters.IsNullOrEmpty())
+                if (!pars.IsNullOrEmpty())
                 {
                     dbCommand.Parameters.AddRange(pars);
                 }
-                var log = this.LogFormatter(sql, commandType, parameters);
+                var log = this.LogFormatter(sql, commandType, pars);
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -309,6 +309,53 @@ namespace XData
                         currentSql = current;
                         dbCommand.CommandText = current;
                         num += dbCommand.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw NewException(ex, currentSql);
+                }
+                finally
+                {
+                    CloseConnection(dbConnection);
+                }
+            }
+
+            return num;
+        }
+
+        /// <summary>
+        /// 对连接对象执行 SQL 语句
+        /// </summary>
+        /// <param name="sqls">SQL查询语句和参数对</param> 
+        /// <returns>返回受影响的行数</returns>
+        public int ExecuteNonQuery(IEnumerable<KeyValuePair<string, DbParameter[]>> sqls)
+        {
+            int num = 0;
+            DbConnection dbConnection = CreateConnection();
+            using (DbCommand dbCommand = this.CreateCommand())
+            {
+                dbCommand.Connection = dbConnection;
+                dbCommand.CommandType = CommandType.Text;
+                string currentSql = null;
+                try
+                {
+                    if (dbConnection.State == ConnectionState.Closed)
+                    {
+                        dbConnection.Open();
+                    }
+                    foreach (var current in sqls)
+                    {
+                        currentSql = current.Key;
+                        dbCommand.CommandText = currentSql;
+                        var pars = CheckNullParameter(current.Value);
+                        var log = this.LogFormatter(currentSql, CommandType.Text, pars);
+                        if (!pars.IsNullOrEmpty())
+                        {
+                            dbCommand.Parameters.AddRange(pars);
+                        }
+                        num += dbCommand.ExecuteNonQuery();
+                        dbCommand.Parameters.Clear();
                     }
                 }
                 catch (Exception ex)
@@ -376,11 +423,11 @@ namespace XData
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
-                if (!parameters.IsNullOrEmpty())
+                if (!pars.IsNullOrEmpty())
                 {
                     dbCommand.Parameters.AddRange(pars);
                 }
-                var log = this.LogFormatter(sql, commandType, parameters);
+                var log = this.LogFormatter(sql, commandType, pars);
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -454,12 +501,12 @@ namespace XData
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
-                if (!parameters.IsNullOrEmpty())
+                if (!pars.IsNullOrEmpty())
                 {
                     dbCommand.Parameters.AddRange(pars);
                 }
 
-                var log = this.LogFormatter(sql, commandType, parameters);
+                var log = this.LogFormatter(sql, commandType, pars);
                 using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
                 {
                     dbDataAdapter.SelectCommand = dbCommand;
@@ -536,7 +583,7 @@ namespace XData
                 dbCommand.CommandType = commandType;
                 dbCommand.CommandText = sql;
                 var pars = CheckNullParameter(parameters);
-                if (!parameters.IsNullOrEmpty())
+                if (!pars.IsNullOrEmpty())
                 {
                     dbCommand.Parameters.AddRange(pars);
                 }
@@ -544,7 +591,7 @@ namespace XData
                 using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
                 {
                     dbDataAdapter.SelectCommand = dbCommand;
-                    var log = this.LogFormatter(sql, commandType, parameters);
+                    var log = this.LogFormatter(sql, commandType, pars);
                     try
                     {
                         dbDataAdapter.Fill(dataTable);

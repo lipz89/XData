@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
+using System.Windows.Forms;
 
 using XData.Common;
 using XData.Core;
@@ -19,6 +21,9 @@ namespace XData.XBuilder
         #region Fields
         private readonly Strings fieldString = new Strings();
         private readonly Strings valueString = new Strings();
+        private bool _hasIdentity;
+        private MemberInfo _identity;
+        private T _entity;
         #endregion
 
         #region Constuctors
@@ -51,6 +56,8 @@ namespace XData.XBuilder
                 valueString.Add(GetParameterIndex());
                 this._parameters.Add(column.GetValue(entity));
             }
+
+            CheckIdentity(entity);
         }
 
         /// <summary>
@@ -92,7 +99,9 @@ namespace XData.XBuilder
                 valueString.Add(GetParameterIndex());
                 this._parameters.Add(column.GetValue(entity));
             }
+            CheckIdentity(entity);
         }
+
         /// <summary>
         /// 根据指定的字段和值构造一个插入命令
         /// </summary>
@@ -120,6 +129,17 @@ namespace XData.XBuilder
         }
         #endregion
 
+        private void CheckIdentity(T entity)
+        {
+            var meta = MapperConfig.GetIdentity<T>();
+            if (meta != null)
+            {
+                _hasIdentity = true;
+                _identity = meta.Member;
+                _entity = entity;
+            }
+        }
+
         #region IExecutable
         /// <summary>
         /// 执行插入操作
@@ -127,7 +147,28 @@ namespace XData.XBuilder
         /// <returns></returns>
         public int Execute()
         {
-            return Context.ExecuteNonQuery(this.ToSql(), this.DbParameters);
+            if (!_hasIdentity)
+            {
+                return Context.ExecuteNonQuery(this.ToSql(), this.DbParameters);
+            }
+            else
+            {
+                var id = Context.ExecuteScalar(this.ToSql() + "; SELECT @@IDENTITY", this.DbParameters);
+                if (id != null && id != DBNull.Value)
+                {
+                    var par = Expression.Parameter(typeof(T));
+                    var parv = Expression.Parameter(_identity.GetMemberType());
+                    var mem = Expression.MakeMemberAccess(par, _identity);
+                    var set = Expression.Assign(mem, parv);
+                    var lbd = Expression.Lambda(set, par, parv);
+                    var act = lbd.Compile();
+                    var iid = Mappers.GetMapper(parv.Type, id.GetType())(id);
+                    act.DynamicInvoke(_entity, iid);
+                    return 1;
+                }
+
+                return 0;
+            }
         }
         #endregion
 

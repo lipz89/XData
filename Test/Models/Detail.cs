@@ -2,7 +2,7 @@
 
 namespace Test
 {
-    public class Detail
+    public class Detail : IRowVersion
     {
         public Detail()
         {
@@ -17,5 +17,7 @@ namespace Test
         public Guid DictionaryID { get; set; }
         public int IndexID { get; set; }
         public Guid? ParentID { get; set; }
+
+        public byte[] RowVersion { get; set; }
     }
 }

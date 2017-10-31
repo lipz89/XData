@@ -64,12 +64,12 @@ namespace XData.Meta
             get
             {
                 var k = MapperConfig.GetKeyMeta(TableType);
-                if (k != null && k.Member.MetadataToken == Member.MetadataToken)
+                if (k != null && k.Member.Name == Member.Name)
                 {
                     return false;
                 }
-                var id = MapperConfig.GetIdentities(TableType);
-                if (id != null && id.Member.MetadataToken == Member.MetadataToken)
+                var id = MapperConfig.GetIdentity(TableType);
+                if (id != null && id.Member.Name == Member.Name)
                 {
                     return false;
                 }
@@ -81,8 +81,8 @@ namespace XData.Meta
         {
             get
             {
-                var id = MapperConfig.GetIdentities(TableType);
-                if (id != null && id.Member.MetadataToken == Member.MetadataToken)
+                var id = MapperConfig.GetIdentity(TableType);
+                if (id != null && id.Member.Name == Member.Name)
                 {
                     return false;
                 }
@@ -140,11 +140,15 @@ namespace XData.Meta
 
         public override int GetHashCode()
         {
-            return this.Member.MetadataToken ^ this.TableType.MetadataToken ^ Constans.HashCodeXOr;
+            return this.Member.Name.GetHashCode() ^ this.TableType.MetadataToken ^ Constans.HashCodeXOr;
         }
 
         public override bool Equals(object obj)
         {
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
             if (obj is ColumnMeta)
             {
                 return this.GetHashCode() == obj.GetHashCode();

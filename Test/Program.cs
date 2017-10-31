@@ -72,8 +72,31 @@ namespace Test
 
         private int GetResult(int i)
         {
-            Console.WriteLine(i+" _ ");
+            Console.WriteLine(i + " _ ");
             return i + 1;
+        }
+    }
+
+    public class TestMember
+    {
+
+        public void Test()
+        {
+
+        }
+
+        class BT
+        {
+            public int Int { get; set; }
+        }
+        class T1 : BT
+        {
+
+        }
+
+        class T2 : BT
+        {
+
         }
     }
 }

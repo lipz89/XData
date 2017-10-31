@@ -79,6 +79,7 @@
     <Compile Include="XBuilder\Include\IncludeCollectionInfo.cs" />
     <Compile Include="XBuilder\Include\IncludeInfo.cs" />
     <Compile Include="XBuilder\Include\IncludePropertyInfo.cs" />
+    <Compile Include="XBuilder\InsertList.cs" />
     <Compile Include="XBuilder\IQuery.cs" />
     <Compile Include="XBuilder\SqlBuilber.cs" />
     <Compile Include="Common\Constans.cs" />

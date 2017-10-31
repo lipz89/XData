@@ -50,6 +50,10 @@ namespace XData.Meta
 
         public override bool Equals(object obj)
         {
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
             if (obj is TableMeta)
             {
                 return this.GetHashCode() == obj.GetHashCode();

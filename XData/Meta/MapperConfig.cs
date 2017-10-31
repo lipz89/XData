@@ -349,9 +349,9 @@ namespace XData.Meta
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
         /// <returns>返回模型的自增列信息</returns>
-        internal static MInfo GetIdentities<T>()
+        internal static MInfo GetIdentity<T>()
         {
-            return GetIdentities(typeof(T));
+            return GetIdentity(typeof(T));
         }
 
         /// <summary>
@@ -359,7 +359,7 @@ namespace XData.Meta
         /// </summary>
         /// <param name="type">模型类型</param>
         /// <returns>返回模型的自增列信息</returns>
-        internal static MInfo GetIdentities(Type type)
+        internal static MInfo GetIdentity(Type type)
         {
             if (TableIdentities.ContainsKey(type))
             {

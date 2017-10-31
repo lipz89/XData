@@ -101,5 +101,18 @@ namespace Test
             Assert.IsTrue(row);
             Assert.IsTrue(row2);
         }
+
+        [Test]
+        public void TestInsertIdentity()
+        {
+            MapperConfig.HasKeyAndIdentity<MyTable>(x => x.ID);
+
+            var m = new MyTable() { Name = "Test" };
+
+            var db = Program.NewContext();
+
+            db.Insert<MyTable>(m);
+            Console.WriteLine(m.ID);
+        }
     }
 }
