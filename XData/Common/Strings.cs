@@ -8,18 +8,18 @@ namespace XData.Common
     /// </summary>
     internal class Strings : List<string>
     {
-        private readonly string _separator;
+        private readonly string separator;
 
         public Strings(string separator = ",")
         {
-            this._separator = separator ?? ",";
+            this.separator = separator ?? ",";
         }
 
         public override string ToString()
         {
             if (this.Any())
             {
-                return string.Join(this._separator, this);
+                return string.Join(this.separator, this);
             }
             return string.Empty;
         }

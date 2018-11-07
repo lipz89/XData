@@ -9,6 +9,7 @@ using XData.Core;
 using XData.Core.ExpressionVisitors;
 using XData.Extentions;
 using XData.Meta;
+using XData.XBuilder.Include;
 
 namespace XData.XBuilder
 {
@@ -21,38 +22,38 @@ namespace XData.XBuilder
     {
         #region Fields
 
-        protected internal bool _useCache;
         protected Where<T> where;
         protected Order<T> order;
-        protected bool _dist;
-        protected int? _top;
-        protected List<T> _list;
-        protected string _fieldsPart;
-        private LambdaExpression selector;
-        private string _wherePart;
-        private string _orderPart;
-        private List<IInclude<T>> includes;
+        protected bool isDistinct;
+        protected int? topCount;
+        protected string fieldsPart;
+        protected LambdaExpression resultSelector;
+        private string wherePart;
+        private string orderPart;
+        protected List<IInclude<T>> includes;
 
         #endregion
 
         #region Properties
-        internal string DistinctPart
+
+        private string DistinctPart
         {
             get
             {
-                return _dist ? " DISTINCT " : string.Empty;
+                return isDistinct ? " DISTINCT " : string.Empty;
             }
         }
-        internal string TopPart
+
+        private string TopPart
         {
             get
             {
-                var top = string.Empty;
-                if (_top.HasValue && _top.Value >= 0)
+                var topPart = string.Empty;
+                if (this.topCount.HasValue && this.topCount.Value >= 0)
                 {
-                    top = " TOP " + _top.Value + " ";
+                    topPart = " TOP " + this.topCount.Value + " ";
                 }
-                return top;
+                return topPart;
             }
         }
         /// <summary>
@@ -62,10 +63,10 @@ namespace XData.XBuilder
         {
             get
             {
-                var ps = this._parameters.ToList();
+                var ps = this.parameters.ToList();
                 if (this.where != null)
                 {
-                    ps.AddRange(this.where._parameters);
+                    ps.AddRange(this.where.parameters);
                 }
                 return ps.AsReadOnly();
             }
@@ -89,8 +90,8 @@ namespace XData.XBuilder
         /// </summary>
         /// <param name="context"></param>
         /// <param name="tableName"></param>
-        /// <param name="useCache"></param>
-        internal Query(XContext context, string tableName, bool useCache = true) : this(context)
+        ///// <param name="useCache"></param>
+        internal Query(XContext context, string tableName/*, bool useCache = true*/) : this(context)
         {
             if (tableMeta.IsSimpleType())
             {
@@ -103,9 +104,8 @@ namespace XData.XBuilder
             this.namedType = new NamedType(this.tableMeta.Type, this.tableName);
             this.typeVisitor.Add(this.namedType);
             //typeNames.Add(typeof(T), _tableName);
-            this._useCache = useCache;
 
-            this.InitFieldsPart();
+            //this.InitFieldsPart();
         }
         #endregion
 
@@ -121,40 +121,13 @@ namespace XData.XBuilder
             {
                 throw Error.ArgumentNullException(nameof(expression));
             }
-            this.where = this.where ?? new Where<T>(Context, this);
-            this.where.Add(expression);
-            this._list = null;
-            this._wherePart = null;
-            return this;
+
+            var query = Copy();
+            query.where = query.where ?? new Where<T>(Context, query);
+            query.where.Add(expression);
+            query.wherePart = null;
+            return query;
         }
-        ///// <summary>
-        ///// 查询条件
-        ///// </summary>
-        ///// <param name="expression"></param>
-        ///// <returns></returns>
-        //public IQuery<T> WhereOr(Expression<Func<T, bool>> expression)
-        //{
-        //    if (expression == null)
-        //    {
-        //        throw Error.ArgumentNullException(nameof(expression));
-        //    }
-        //    this.where = this.where ?? new Where<T>(Context, this);
-        //    this.where.AddOr(expression);
-        //    this._list = null;
-        //    this._wherePart = null;
-        //    return this;
-        //}
-        ///// <summary>
-        ///// 清除查询条件
-        ///// </summary>
-        ///// <returns></returns>
-        //public IQuery<T> ClearWhere()
-        //{
-        //    this.where = null;
-        //    this._list = null;
-        //    this._wherePart = null;
-        //    return this;
-        //}
 
         #endregion
 
@@ -166,47 +139,31 @@ namespace XData.XBuilder
         /// <param name="expression"></param>
         /// <param name="isAsc"></param>
         /// <returns></returns>
-        public IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression, bool isAsc = true)
+        private IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression, bool isAsc)
         {
-            this.order = this.order ?? new Order<T>(Context, this);
-            this.order.By(expression, isAsc);
-            this._list = null;
-            return this;
+            var query = Copy();
+            query.order = query.order ?? new Order<T>(Context, query);
+            query.order.By(expression, isAsc);
+            return query;
         }
         /// <summary>
         /// 多字段升序
         /// </summary>
-        /// <param name="expressions"></param>
+        /// <param name="expression"></param>
         /// <returns></returns>
-        public IQuery<T> OrderBy(params Expression<Func<T, dynamic>>[] expressions)
+        public IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression)
         {
-            this.order = this.order ?? new Order<T>(Context, this);
-            this.order.ByAsc(expressions);
-            this._list = null;
-            return this;
+            return this.OrderBy(expression, true);
         }
         /// <summary>
         /// 多字段降序
         /// </summary>
-        /// <param name="expressions"></param>
+        /// <param name="expression"></param>
         /// <returns></returns>
-        public IQuery<T> OrderByDescending(params Expression<Func<T, dynamic>>[] expressions)
+        public IQuery<T> OrderByDescending<TProperty>(Expression<Func<T, TProperty>> expression)
         {
-            this.order = this.order ?? new Order<T>(Context, this);
-            this.order.ByDesc(expressions);
-            this._list = null;
-            return this;
+            return this.OrderBy(expression, false);
         }
-        ///// <summary>
-        ///// 清除排序条件
-        ///// </summary>
-        ///// <returns></returns>
-        //public IQuery<T> ClearOrder()
-        //{
-        //    this.order = null;
-        //    this._list = null;
-        //    return this;
-        //}
 
         #endregion
 
@@ -218,16 +175,20 @@ namespace XData.XBuilder
         /// <returns></returns>
         public IQuery<T> Top(int top)
         {
+            if (top == this.topCount)
+            {
+                return this;
+            }
+            var query = Copy();
             if (top > 0)
             {
-                _top = top;
+                query.topCount = top;
             }
             else
             {
-                _top = null;
+                query.topCount = null;
             }
-            this._list = null;
-            return this;
+            return query;
         }
 
         #endregion
@@ -236,12 +197,15 @@ namespace XData.XBuilder
         /// <summary>
         /// 返回非重复记录
         /// </summary>
-        /// <param name="distinct">true表示返回非重复数据，否则表示返回所有数据</param>
         /// <returns>查询构建器</returns>
-        public IQuery<T> Distinct(bool distinct = true)
+        public IQuery<T> Distinct()
         {
-            _dist = distinct;
-            this._list = null;
+            if (this.isDistinct)
+            {
+                return this;
+            }
+            var query = Copy();
+            query.isDistinct = true;
             return this;
         }
         #endregion
@@ -259,17 +223,17 @@ namespace XData.XBuilder
             return null;
         }
 
-        private List<T> FillInclude(List<T> list)
+        private List<T> FillInclude(List<T> result)
         {
             if (!includes.IsNullOrEmpty())
             {
                 foreach (var include in includes)
                 {
-                    list = include.Invoke(list);
+                    result = include.Invoke(result);
                 }
             }
 
-            return list;
+            return result;
         }
         private T FillInclude(T item)
         {
@@ -291,10 +255,10 @@ namespace XData.XBuilder
             if (relectionKey == null) { throw Error.ArgumentNullException(nameof(relectionKey)); }
             if (action == null) { throw Error.ArgumentNullException(nameof(action)); }
 
-            includes = includes ?? new List<IInclude<T>>();
-            includes.Add(new IncludePropertyInfo<T, TRelaction, TKey>(Context, tkey, relectionKey, action));
-            this._list = null;
-            return this;
+            var query = Copy();
+            query.includes = query.includes ?? new List<IInclude<T>>();
+            query.includes.Add(new IncludePropertyInfo<T, TRelaction, TKey>(Context, tkey, relectionKey, action));
+            return query;
         }
 
         public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Action<T, TRelaction> action)
@@ -314,10 +278,10 @@ namespace XData.XBuilder
             if (relectionKey == null) { throw Error.ArgumentNullException(nameof(relectionKey)); }
             if (action == null) { throw Error.ArgumentNullException(nameof(action)); }
 
-            includes = includes ?? new List<IInclude<T>>();
-            includes.Add(new IncludeCollectionInfo<T, TRelaction, TKey>(Context, tkey, relectionKey, action));
-            this._list = null;
-            return this;
+            var query = Copy();
+            query.includes = query.includes ?? new List<IInclude<T>>();
+            query.includes.Add(new IncludeCollectionInfo<T, TRelaction, TKey>(Context, tkey, relectionKey, action));
+            return query;
         }
 
         public IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<T, TKey>> tkey, Action<T, IEnumerable<TRelaction>> action)
@@ -348,9 +312,10 @@ namespace XData.XBuilder
             }
             if (typeof(T) == typeof(TResult))
             {
-                this.selector = result;
-                this.SetInnerFields();
-                return (IQuery<TResult>)this;
+                var query = Copy();
+                query.resultSelector = result;
+                query.SetInnerFields();
+                return (IQuery<TResult>)query;
             }
             var _tableName = this.tableName + "_";
             //this.innerTableMeta = TableMeta.From<TResult>(tableName);
@@ -367,14 +332,10 @@ namespace XData.XBuilder
         /// <returns></returns>
         public int Count()
         {
-            if (this._useCache && this._list != null)
-            {
-                return this._list.Count;
-            }
             this.parameterIndex = 0;
-            var tableName = GetTableNameOrInnerSql();
-            var sql = string.Format("SELECT COUNT(1) FROM {0} {1}", tableName, this.GetWherePart());
-            return (int)Context.ExecuteScalar(sql, CommandType.Text, this.DbParameters);
+            var _tableName = GetTableNameOrInnerSql();
+            var sql = string.Format("SELECT COUNT(1) FROM {0} {1}", _tableName, this.GetWherePart());
+            return (int)Context.ExecuteScalar(sql, this.DbParameters);
         }
         /// <summary>
         /// 聚合函数
@@ -385,27 +346,11 @@ namespace XData.XBuilder
         /// <returns></returns>
         private TAggregate Aggregate<TAggregate>(Expression<Func<T, TAggregate>> selector, string aggregateName)
         {
-            if (this._useCache && this._list != null)
-            {
-                dynamic _dynamiclist = this._list;
-                var func = selector.Compile();
-                switch (aggregateName)
-                {
-                    case "MAX":
-                        return this._list.Max(func);
-                    case "MIN":
-                        return this._list.Min(func);
-                    case "SUM":
-                        return (TAggregate)_dynamiclist.Sum(func);
-                    case "AVG":
-                        return (TAggregate)_dynamiclist.Average(func);
-                }
-            }
             this.parameterIndex = 0;
-            var tableName = GetTableNameOrInnerSql();
+            var _tableName = GetTableNameOrInnerSql();
             var columnName = SqlExpressionVistor.Visit(selector, this);
-            var sql = string.Format("SELECT {5}({4}{3}) FROM {0} {1} {2}", tableName, this.GetWherePart(), this.GetOrderPart(), columnName, this.DistinctPart, aggregateName);
-            var value = Context.ExecuteScalar(sql, CommandType.Text, this.DbParameters);
+            var sql = string.Format("SELECT {5}({4}{3}) FROM {0} {1} {2}", _tableName, this.GetWherePart(), this.GetOrderPart(), columnName, this.DistinctPart, aggregateName);
+            var value = Context.ExecuteScalar(sql, this.DbParameters);
             if (value == DBNull.Value)
             {
                 if (typeof(TAggregate).IsValueType && (aggregateName == "SUM" || aggregateName == "AVG"))
@@ -468,29 +413,15 @@ namespace XData.XBuilder
         /// <returns></returns>
         public List<T> ToList()
         {
-            if (this._useCache && _list != null)
-            {
-                return _list.ToList();
-            }
-            else
-            {
-                var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
-                _list = enumer.ToList();
-                return FillInclude(_list);
-            }
+            var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
+            var list = enumer.ToList();
+            return FillInclude(list);
         }
 
         public T FirstOrDefault()
         {
-            if (this._useCache && _list != null)
-            {
-                return _list.FirstOrDefault();
-            }
-            else
-            {
-                var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
-                return FillInclude(enumer.FirstOrDefault());
-            }
+            var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
+            return FillInclude(enumer.FirstOrDefault());
         }
         #endregion
 
@@ -516,30 +447,16 @@ namespace XData.XBuilder
             {
                 throw Error.ArgumentNullException(nameof(page));
             }
-            if (this._useCache && this._list != null)
+
+            var datas = Context.SqlQuery<T>(page, this.ToSql(), CommandType.Text, this.DbParameters).ToList();
+            var total = this.Count();
+            return new Page<T>
             {
-                var datas = this._list.Skip(page.Skip).Take(page.PageSize).ToList();
-                var total = this._list.Count;
-                return new Page<T>
-                {
-                    PageSize = page.PageSize,
-                    PageIndex = page.PageIndex,
-                    TotalRecords = total,
-                    Items = datas
-                };
-            }
-            else
-            {
-                var datas = Context.SqlQuery<T>(page, this.ToSql(), CommandType.Text, this.DbParameters).ToList();
-                var total = this.Count();
-                return new Page<T>
-                {
-                    PageSize = page.PageSize,
-                    PageIndex = page.PageIndex,
-                    TotalRecords = total,
-                    Items = FillInclude(datas)
-                };
-            }
+                PageSize = page.PageSize,
+                PageIndex = page.PageIndex,
+                TotalRecords = total,
+                Items = FillInclude(datas)
+            };
         }
 
         #endregion
@@ -553,8 +470,8 @@ namespace XData.XBuilder
         {
             this.parameterIndex = 0;
             var _tableName = GetTableNameOrInnerSql();
-            var fieldsPart = this.InitFieldsPart();
-            return string.Format("SELECT {3} {4} {5} FROM {0} {1} {2}", _tableName, this.GetWherePart(), this.GetOrderPart(), this.DistinctPart, this.TopPart, fieldsPart);
+            var _fieldsPart = this.InitFieldsPart();
+            return string.Format("SELECT {3} {4} {5} FROM {0} {1} {2}", _tableName, this.GetWherePart(), this.GetOrderPart(), this.DistinctPart, this.TopPart, _fieldsPart);
         }
 
         /// <summary>
@@ -565,28 +482,30 @@ namespace XData.XBuilder
         {
             this.parameterIndex = 0;
             var _tableName = GetTableNameOrInnerSql();
-            var fieldsPart = this.InitFieldsPart();
-            return string.Format("SELECT {2} {3} {4} FROM {0} {1}", _tableName, this.GetWherePart(), this.DistinctPart, this.TopPart, fieldsPart);
+            var _fieldsPart = this.InitFieldsPart();
+            return string.Format("SELECT {2} {3} {4} FROM {0} {1}", _tableName, this.GetWherePart(), this.DistinctPart, this.TopPart, _fieldsPart);
         }
 
         #endregion
 
         #region ProtectedMethods
-        internal string GetWherePart()
+
+        private string GetWherePart()
         {
-            if (this._wherePart.IsNullOrWhiteSpace() && this.where != null)
+            if (this.wherePart.IsNullOrWhiteSpace() && this.where != null)
             {
-                this._wherePart = this.where.ToSql();
+                this.wherePart = this.where.ToSql();
             }
-            return _wherePart;
+            return this.wherePart;
         }
-        internal string GetOrderPart()
+
+        private string GetOrderPart()
         {
-            if (this._orderPart.IsNullOrWhiteSpace() && this.order != null)
+            if (this.orderPart.IsNullOrWhiteSpace() && this.order != null)
             {
-                this._orderPart = this.order.ToSql();
+                this.orderPart = this.order.ToSql();
             }
-            return _orderPart;
+            return this.orderPart;
         }
 
         /// <summary>
@@ -605,7 +524,7 @@ namespace XData.XBuilder
         protected virtual object InitFieldsPart()
         {
             //return "*";
-            if (_fieldsPart.IsNullOrWhiteSpace())
+            if (fieldsPart.IsNullOrWhiteSpace())
             {
                 var strs = new Strings();
                 foreach (var column in tableMeta.Columns)
@@ -614,9 +533,9 @@ namespace XData.XBuilder
                     strs.Add(sql);
                     namedType.Add(column.Member, sql);
                 }
-                _fieldsPart = strs.ToString();
+                fieldsPart = strs.ToString();
             }
-            return _fieldsPart;
+            return fieldsPart;
         }
 
         /// <summary>
@@ -626,8 +545,8 @@ namespace XData.XBuilder
         protected virtual void SetInnerFields()
         {
             var strs = new Strings();
-            GetMembers(selector.Body, strs, null);
-            _fieldsPart = strs.ToString();
+            GetMembers(resultSelector.Body, strs, null);
+            fieldsPart = strs.ToString();
         }
 
         protected void GetMembers(Expression expression, Strings strs, MemberInfo member, string path = null)
@@ -683,5 +602,18 @@ namespace XData.XBuilder
         }
 
         #endregion
+
+        protected virtual Query<T> Copy()
+        {
+            var query = new Query<T>(this.Context, this.tableName);
+            query.order = this.order?.Copy(query);
+            query.where = this.where?.Copy(query);
+            query.fieldsPart = this.fieldsPart;
+            query.includes = this.includes?.ToList();
+            query.isDistinct = this.isDistinct;
+            query.resultSelector = this.resultSelector;
+            query.topCount = this.topCount;
+            return query;
+        }
     }
 }

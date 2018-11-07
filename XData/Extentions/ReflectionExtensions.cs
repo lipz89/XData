@@ -5,7 +5,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 using XData.Common;
 
@@ -209,19 +208,21 @@ namespace XData.Extentions
 
         public static Type GetMemberType(this MemberInfo value)
         {
-            if (value is FieldInfo)
+            if (value is FieldInfo fieldInfo)
             {
-                return ((FieldInfo)value).FieldType;
+                return fieldInfo.FieldType;
             }
-            else if (value is PropertyInfo)
+
+            if (value is PropertyInfo propertyInfo)
             {
-                return ((PropertyInfo)value).PropertyType;
+                return propertyInfo.PropertyType;
             }
-            else if (value is MethodInfo)
+
+            if (value is MethodInfo methodInfo)
             {
-                return ((MethodInfo)value).ReturnType;
+                return methodInfo.ReturnType;
             }
-            throw new NotSupportedException();
+            throw Error.NotSupportedException("Œ¥ µœ÷");
         }
     }
 }

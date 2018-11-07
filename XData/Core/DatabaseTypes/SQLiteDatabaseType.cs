@@ -3,7 +3,7 @@
     /// <summary>
     /// SQLite 数据源
     /// </summary>
-    class SQLiteDatabaseType : DatabaseType
+    class SqliteDatabaseType : DatabaseType
     {
         /// <summary>
         /// 将 C# 数据类型转换为相应数据源的数据类型
@@ -12,8 +12,8 @@
         /// <returns>转换后的值</returns>
         public override object MapParameterValue(object value)
         {
-            if (value is uint)
-                return (long)(uint)value;
+            if (value is uint u)
+                return (long)u;
 
             return base.MapParameterValue(value);
         }

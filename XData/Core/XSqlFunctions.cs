@@ -29,9 +29,9 @@ namespace XData.Core
         /// <returns></returns>
         public static bool Between<T>(this T value, T start, T end) where T : struct, IComparable<T>
         {
-            var iss = value.CompareTo(start) >= 0;
-            var ise = value.CompareTo(end) <= 0;
-            return iss && ise;
+            var gte = value.CompareTo(start) >= 0;
+            var lte = value.CompareTo(end) <= 0;
+            return gte && lte;
         }
     }
 }

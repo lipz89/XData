@@ -1,8 +1,4 @@
-﻿
-using System.Collections.Generic;
-using System.Linq;
-
-namespace XData.Core.DatabaseTypes
+﻿namespace XData.Core.DatabaseTypes
 {
 	/// <summary>
 	/// SqlServer CE 数据源

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace XData.XBuilder
+namespace XData.XBuilder.Include
 {
     internal class IncludeCollectionInfo<T, TRelaction, TKey> : IncludeInfo<T, TRelaction, TKey>
     {

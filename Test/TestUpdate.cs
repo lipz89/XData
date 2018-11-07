@@ -4,17 +4,10 @@ using System.Linq;
 
 using NUnit.Framework;
 
-using XData.Meta;
-
 namespace Test
 {
-    public class TestUpdate
+    public class TestUpdate : BaseTest
     {
-        public TestUpdate()
-        {
-            MapperConfig.IgnoreColumn<Menu>(x => x.RowVersion);
-            MapperConfig.HasKey<Menu>(x => x.ID);
-        }
         [Test]
         public void Test()
         {
@@ -41,7 +34,7 @@ namespace Test
 
             var name = "²âÊÔ^^";
             menu.Name = name;
-            var flag = db.Update(menu, false, x => x.Code, x => x.Action, x => x.Controller, x => x.IndexID, x => x.Memo, x => x.MenuLevel);
+            var flag = db.Update(menu, false, x => x.Code, x => x.Url, x => x.IndexID, x => x.Memo, x => x.MenuLevel);
 
             Assert.IsTrue(flag);
 

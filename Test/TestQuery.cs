@@ -1,74 +1,113 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using Newtonsoft.Json;
 
 using NUnit.Framework;
 
 using XData.Common;
 using XData.Core;
-using XData.Meta;
 
 
 namespace Test
 {
-    public class TestQuery
+    public class TestQuery : BaseTest
     {
-        public TestQuery()
+        [Test]
+        public void InitValues()
         {
-            MapperConfig.HasTableName<TestModel>("Test");
-            MapperConfig.HasColumnName<TestModel>(x => x.Text, "Name");
-            MapperConfig.IgnoreColumn<Menu>(x => x.RowVersion);
+            var someValues = new List<SomeValues>();
+            var rd = new Random(DateTime.Now.Millisecond);
+            for (int i = 0; i < 100; i++)
+            {
+                var sv = new SomeValues()
+                {
+                    ID = i,
+                    ValueBit = false,
+                    ValueInt = i,
+                    ValueInt2 = rd.Next(Int32.MaxValue),
+                    ValueNVarchar = "测试",
+                    ValueVarchar = i + "abc" + i + "d" + i + "文本",
+                    ValueBigInt = i,
+                    ValueChar = 'A',
+                    ValueDate = DateTime.Today,
+                    ValueDatetime = DateTime.Now,
+                    ValueDatetime2 = DateTime.Now,
+                    ValueDatetimeOffset = DateTimeOffset.Now,
+                    ValueDecimal = (decimal)rd.NextDouble(),
+                    ValueFloat = (float)rd.NextDouble(),
+                    ValueNumeric = (decimal)rd.NextDouble(),
+                    ValueReal = rd.NextDouble(),
+                    ValueText = "测试" + i + "文本",
+                    ValueTinyint = (byte)i,
+                    ValueNChar = 'A',
+                };
+                someValues.Add(sv);
+            }
+
+            someValues[0].ValueVarchar = "testAProperty";
+            someValues[1].ValueVarchar = "testBField";
+            someValues[2].ValueVarchar = "testVarA";
+            someValues[3].ValueVarchar = "testVarB";
+
+            var db = Program.NewContext();
+            db.Delete<SomeValues>(null);
+            var row = db.Insert<SomeValues>(someValues);
+            Assert.AreEqual(row, 100);
         }
 
-        //private string a { get; set; } = "鄂20160196";
-        private static string b = "粤20160402";
+        private string A { get; set; } = "testAProperty";
+        private static string B = "testBField";
         [Test]
         public void Test()
         {
-            var a = "鄂20160196";
-            //var b = "粤20160402";
-            var ss = new List<string> { "鄂20160196", "粤20160402", "苏20160297" };
+            var ss = new List<string> { "testAProperty", "testBField", "testVarA", "testVarB", "testVarC", "testAPropertyC" };
             var db = Program.NewContext();
-            //var query = db.Query<Supplier>().Where(x => ss.Contains(x.Code)).OrderBy(x => x.Name).Top(10);
+            var query = db.Query<SomeValues>().Where(x => ss.Contains(x.ValueVarchar)).OrderBy(x => x.ValueVarchar).Top(10);
 
-            //var sql = query.ToSql();
-            ////var pas = query.Parameters;
-            //////var table = db.GetDataTable(sql, pas.ToArray());
+            var list = query.ToList();
+            Console.WriteLine(list.Count);
+        }
+        [Test]
+        public void Test2()
+        {
+            var a = "testVarA";
+            var b = "testVarB";
+            var db = Program.NewContext();
 
-            ////var list = db.Query<Supplier>(sql, pas.ToArray()).ToList();
-
-            //var list = query.ToList();
-            //Console.WriteLine(list.Count);
-            //Console.WriteLine("--cache:");
-            //list = query.ToList();
-            //Console.WriteLine(list.Count);
+            var query2 = db.Query<SomeValues>().Where(x => x.ValueVarchar == A).FirstOrDefault();
+            var query3 = db.Query<SomeValues>().Where(x => x.ValueVarchar == B).FirstOrDefault();
+            var query4 = db.Query<SomeValues>().Where(x => x.ValueVarchar == a).FirstOrDefault();
+            var query5 = db.Query<SomeValues>().Where(x => x.ValueVarchar == b).FirstOrDefault();
+            Console.WriteLine(JsonConvert.SerializeObject(query2));
+            Console.WriteLine(JsonConvert.SerializeObject(query3));
+            Console.WriteLine(JsonConvert.SerializeObject(query4));
+            Console.WriteLine(JsonConvert.SerializeObject(query5));
         }
 
         [Test]
         public void TestLike()
         {
-            string pattern = "__s%-[ds]%";
+            string pattern = "%abc_d%";
             var db = Program.NewContext();
-            var query = db.Query<Menu>().Where(x => x.Code.SqlLike(pattern)).ToList();
+            var query = db.Query<SomeValues>().Where(x => x.ValueVarchar.SqlLike(pattern)).ToList();
             Console.WriteLine(query.Count);
         }
 
-        [Test]
+        [Test, Order(100)]
         public void TestAggregate()
         {
             var db = Program.NewContext();
 
-            db.Delete<TestModel>(null);
+            db.Delete<SomeValues>(null);
 
-            var query = db.Query<TestModel>();
+            var query = db.Query<SomeValues>();
 
             var count = query.Count();
             Assert.AreEqual(count, 0);
 
             Assert.Throws<XDataException>(() =>
             {
-                var max = query.Max(x => x.Index);
+                var max = query.Max(x => x.ValueInt);
                 Console.WriteLine(max);
             });
             Assert.Throws<XDataException>(() =>
@@ -77,29 +116,9 @@ namespace Test
                 Console.WriteLine(min);
             });
 
-            var sum = query.Sum(x => x.Index);
+            var sum = query.Sum(x => x.ValueInt);
             Assert.AreEqual(sum, 0);
-            var avg = query.Avg(x => x.Index);
-            Assert.AreEqual(avg, 0);
-
-            Console.WriteLine("--cache:");
-            count = query.Count();
-            Console.WriteLine(count);
-
-            Assert.Throws<XDataException>(() =>
-            {
-                var max = query.Max(x => x.Index);
-                Console.WriteLine(max);
-            });
-            Assert.Throws<XDataException>(() =>
-            {
-                var min = query.Min(x => x.ID);
-                Console.WriteLine(min);
-            });
-
-            sum = query.Sum(x => x.Index);
-            Assert.AreEqual(sum, 0);
-            avg = query.Avg(x => x.Index);
+            var avg = query.Avg(x => x.ValueInt);
             Assert.AreEqual(avg, 0);
         }
         [Test]
@@ -107,51 +126,29 @@ namespace Test
         {
             var db = Program.NewContext();
 
-            db.Delete<TestModel>(null);
-
-            for (int i = 0; i < 10; i++)
-            {
-                db.Insert(new TestModel(i, i) { Index = i, Text = "Text" + i });
-            }
-
-            var query = db.Query<TestModel>();
+            var query = db.Query<SomeValues>();
 
             var count = query.Count();
-            Assert.AreEqual(count, 10);
+            Assert.AreEqual(count, 100);
 
-            var max = query.Max(x => x.Index);
-            Assert.AreEqual(max, 9);
-            var min = query.Min(x => x.ID);
+            var max = query.Max(x => x.ValueInt);
+            Assert.AreEqual(max, 99);
+            var min = query.Min(x => x.ValueInt);
             Assert.AreEqual(min, 0);
-            var sum = query.Sum(x => x.Index);
-            Assert.AreEqual(sum, 45);
-            var avg = query.Avg(x => x.Index);
-            Assert.AreEqual(avg, 4);
-
-            Console.WriteLine("--cache:");
-            count = query.Count();
-            Assert.AreEqual(count, 10);
-
-            max = query.Max(x => x.Index);
-            Assert.AreEqual(max, 9);
-            min = query.Min(x => x.ID);
-            Assert.AreEqual(min, 0);
-            sum = query.Sum(x => x.Index);
-            Assert.AreEqual(sum, 45);
-            avg = query.Avg(x => x.Index);
-            Assert.AreEqual(avg, 4);
+            var sum = query.Sum(x => x.ValueInt);
+            Assert.AreEqual(sum, 4950);
+            var avg = query.Avg(x => x.ValueInt);
+            Assert.AreEqual(avg, 49);
         }
 
         [Test]
         public void TestQueryPage()
         {
             var db = Program.NewContext();
-            var query = db.Query<TestModel>();
+            var query = db.Query<SomeValues>();
 
             var page = query.ToPage(2, 10);
-            Console.WriteLine(JsonConvert.SerializeObject(page));
-            Console.WriteLine("--cache:");
-            page = query.ToPage(2, 10);
+            Console.WriteLine(page);
             Console.WriteLine(JsonConvert.SerializeObject(page));
         }
 
@@ -159,9 +156,10 @@ namespace Test
         public void TestQueryIEnumerable()
         {
             var db = Program.NewContext();
-            var query = db.Query<TestModel>().Where(x => (x.Text + x.Text).Length < 20).Top(5);
+            var query = db.Query<SomeValues>().Where(x => (x.ValueVarchar + x.ValueVarchar).Length < 20).Top(5);
 
             var enumer = query.ToList();
+            Console.WriteLine(enumer.Count);
             Console.WriteLine(JsonConvert.SerializeObject(enumer));
             enumer.Clear();
 
@@ -173,7 +171,7 @@ namespace Test
         public void TestOrder()
         {
             var db = Program.NewContext();
-            var query = db.Query<TestModel>().Where(x => x.Index.Between(10, 15)).OrderBy(x => x.Index + 1);
+            var query = db.Query<SomeValues>().Where(x => x.ValueInt.Between(10, 15)).OrderBy(x => x.ValueInt + 1);
             var l = query.ToList();
             Console.WriteLine(l.Count);
         }
@@ -182,14 +180,14 @@ namespace Test
         public void TestSingle()
         {
             var db = Program.NewContext();
-            var q = db.GetFirstOrDefault<TestModel>(x => x.Index == 100);
+            var q = db.GetFirstOrDefault<SomeValues>(x => x.ValueInt == 99);
             Console.WriteLine(JsonConvert.SerializeObject(q));
 
 
-            var q2 = db.GetByKey<TestModel>(100, x => x.ID);
+            var q2 = db.GetByKey<SomeValues>(99, x => x.ID);
             Console.WriteLine(JsonConvert.SerializeObject(q2));
 
-            var q3 = db.GetByKey<TestModel>(40);
+            var q3 = db.GetByKey<SomeValues>(40);
             Console.WriteLine(JsonConvert.SerializeObject(q3));
         }
     }

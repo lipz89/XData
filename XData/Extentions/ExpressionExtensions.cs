@@ -16,19 +16,19 @@ namespace XData.Extentions
             }
 
             Expression exp = expression;
-            if (expression is LambdaExpression)
+            if (expression is LambdaExpression lambda)
             {
-                exp = (expression as LambdaExpression).Body;
+                exp = lambda.Body;
             }
 
-            if (exp is UnaryExpression)
+            if (exp is UnaryExpression unary)
             {
-                exp = (exp as UnaryExpression).Operand;
+                exp = unary.Operand;
             }
 
-            if (exp is MemberExpression)
+            if (exp is MemberExpression member)
             {
-                return (exp as MemberExpression).Member;
+                return member.Member;
             }
             return null;
         }
@@ -53,9 +53,9 @@ namespace XData.Extentions
             var exp = expression;
             while (type != exp.Type)
             {
-                if (exp is UnaryExpression)
+                if (exp is UnaryExpression unary)
                 {
-                    exp = (exp as UnaryExpression).Operand;
+                    exp = unary.Operand;
                 }
                 else
                 {

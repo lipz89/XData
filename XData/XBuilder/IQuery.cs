@@ -28,47 +28,19 @@ namespace XData.XBuilder
         /// <returns>当前查询</returns>
         IQuery<T> Where(Expression<Func<T, bool>> expression);
 
-        ///// <summary>
-        ///// 查询条件
-        ///// </summary>
-        ///// <param name="expression">条件表达式</param>
-        ///// <returns>当前接口</returns>
-        //IQuery<T> WhereOr(Expression<Func<T, bool>> expression);
-
-        ///// <summary>
-        ///// 清除查询条件
-        ///// </summary>
-        ///// <returns>当前接口</returns>
-        //IQuery<T> ClearWhere();
-
-        /// <summary>
-        /// 排序条件
-        /// </summary>
-        /// <typeparam name="TProperty">排序属性类型</typeparam>
-        /// <param name="expression">排序字段表达式</param>
-        /// <param name="isAsc">是否升序，true为升序，false为降序，默认为true</param>
-        /// <returns>当前查询</returns>
-        IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression, bool isAsc = true);
-
         /// <summary>
         /// 多字段升序
         /// </summary>
-        /// <param name="expressions">排序字段表达式数组</param>
+        /// <param name="expression">排序字段表达式数组</param>
         /// <returns>当前查询</returns>
-        IQuery<T> OrderBy(params Expression<Func<T, object>>[] expressions);
+        IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression);
 
         /// <summary>
         /// 多字段降序
         /// </summary>
-        /// <param name="expressions">排序字段表达式数组</param>
+        /// <param name="expression">排序字段表达式数组</param>
         /// <returns>当前查询</returns>
-        IQuery<T> OrderByDescending(params Expression<Func<T, object>>[] expressions);
-
-        ///// <summary>
-        ///// 清除排序条件
-        ///// </summary>
-        ///// <returns>当前查询</returns>
-        //IQuery<T> ClearOrder();
+        IQuery<T> OrderByDescending<TProperty>(Expression<Func<T, TProperty>> expression);
 
         /// <summary>
         /// 设置查询的条数
@@ -80,9 +52,8 @@ namespace XData.XBuilder
         /// <summary>
         /// 返回非重复记录
         /// </summary>
-        /// <param name="distinct">true表示返回非重复数据，否则表示返回所有数据</param>
         /// <returns>当前查询</returns>
-        IQuery<T> Distinct(bool distinct = true);
+        IQuery<T> Distinct();
 
         /// <summary>
         /// 投影
@@ -162,7 +133,7 @@ namespace XData.XBuilder
         /// <returns>返回sql语句字符串</returns>
         string ToSql();
 
-        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Expression<Func<TRelaction, TKey>> relectionKey,Action<T,TRelaction> action);
+        IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, TRelaction> action);
 
         IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, TRelaction>> property, Expression<Func<T, TKey>> tkey, Action<T, TRelaction> action);
 

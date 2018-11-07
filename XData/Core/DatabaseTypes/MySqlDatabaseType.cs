@@ -1,15 +1,4 @@
-﻿// ***********************************************************************
-// 程序集			: NetRube.Data
-// 文件名			: MySqlDatabaseType.cs
-// 作者				: NetRube
-// 创建时间			: 2013-08-05
-//
-// 最后修改者		: NetRube
-// 最后修改时间		: 2013-11-05
-// ***********************************************************************
-
-// PetaPoco - A Tiny ORMish thing for your POCO's.
-// Copyright © 2011-2012 Topten Software.  All Rights Reserved.
+﻿using System;
 
 namespace XData.Core.DatabaseTypes
 {
@@ -21,11 +10,11 @@ namespace XData.Core.DatabaseTypes
         /// <summary>
         /// 获取 SQL 参数名称前缀
         /// </summary>
-        /// <param name="ConnectionString">数据源连接字符串</param>
+        /// <param name="connectionString">数据源连接字符串</param>
         /// <returns>参数名称前缀</returns>
-        public override string GetParameterPrefix(string ConnectionString)
+        public override string GetParameterPrefix(string connectionString)
         {
-            if (ConnectionString != null && ConnectionString.IndexOf("Allow User Variables=true") >= 0)
+            if (connectionString != null && connectionString.IndexOf("Allow User Variables=true", StringComparison.Ordinal) >= 0)
                 return "?";
             else
                 return "@";
@@ -40,7 +29,7 @@ namespace XData.Core.DatabaseTypes
         {
             if (str[0] == '`' && str[str.Length - 1] == '`') return str;
 
-            return string.Format("`{0}`", str);
+            return $"`{str}`";
         }
 
         /// <summary>

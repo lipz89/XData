@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-
-using XData.Common;
 using XData.Core;
-using XData.Extentions;
 using XData.Meta;
 
 namespace XData.XBuilder
@@ -15,14 +9,14 @@ namespace XData.XBuilder
     /// <summary>
     /// Sql构造器
     /// </summary>
-    public abstract class SqlBuilber
+    internal abstract class SqlBuilber
     {
         #region Fields
-        internal readonly List<object> _parameters = new List<object>();
+        internal readonly List<object> parameters = new List<object>();
         internal int parameterIndex = 0;
         internal TableMeta tableMeta;
         internal string tableName;
-        internal TypeVisitor typeVisitor = new TypeVisitor();
+        internal readonly TypeVisitor typeVisitor = new TypeVisitor();
         internal NamedType namedType;
         #endregion
 
@@ -30,7 +24,7 @@ namespace XData.XBuilder
         /// <summary>
         /// 上下文对象
         /// </summary>
-        public XContext Context { get; internal set; }
+        public XContext Context { get; set; }
 
         /// <summary>
         /// Sql参数列表
@@ -39,7 +33,7 @@ namespace XData.XBuilder
         {
             get
             {
-                return this._parameters.AsReadOnly();
+                return this.parameters.AsReadOnly();
             }
         }
 
@@ -55,10 +49,10 @@ namespace XData.XBuilder
         /// <summary>
         /// 构造一个Sql构造器
         /// </summary>
-        /// <param name="Context">Sql构造器所依附的数据库上下文</param>
-        protected SqlBuilber(XContext Context)
+        /// <param name="context">Sql构造器所依附的数据库上下文</param>
+        protected SqlBuilber(XContext context)
         {
-            this.Context = Context;
+            this.Context = context;
         }
         #endregion
 

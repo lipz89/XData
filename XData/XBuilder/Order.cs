@@ -24,6 +24,10 @@ namespace XData.XBuilder
         {
             this.privoder = privoder;
         }
+        private Order(XContext context, SqlBuilber privoder, Dictionary<Expression, bool> sorts) : this(context, privoder)
+        {
+            this.sorts = sorts.ToDictionary(x => x.Key, x => x.Value);
+        }
         #endregion
 
         /// <summary>
@@ -41,32 +45,6 @@ namespace XData.XBuilder
             }
 
             sorts.Add(expression.Body, isAsc);
-        }
-
-        /// <summary>
-        /// 根据多字段升序
-        /// </summary>
-        /// <param name="expressions"></param>
-        /// <returns></returns>
-        public void ByAsc(params Expression<Func<T, dynamic>>[] expressions)
-        {
-            foreach (var expression in expressions)
-            {
-                By(expression, true);
-            }
-        }
-
-        /// <summary>
-        /// 根据多字段降序
-        /// </summary>
-        /// <param name="expressions"></param>
-        /// <returns></returns>
-        public void ByDesc(params Expression<Func<T, dynamic>>[] expressions)
-        {
-            foreach (var expression in expressions)
-            {
-                By(expression, false);
-            }
         }
         /// <summary>
         /// 转换成Sql语句
@@ -96,6 +74,11 @@ namespace XData.XBuilder
                 return " ORDER BY " + orders;
             }
             return string.Empty;
+        }
+
+        internal Order<T> Copy(SqlBuilber newPrivoder)
+        {
+            return new Order<T>(this.Context, newPrivoder, this.sorts);
         }
     }
 }

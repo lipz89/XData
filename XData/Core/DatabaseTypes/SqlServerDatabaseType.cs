@@ -23,7 +23,7 @@ namespace XData.Core.DatabaseTypes
         /// <remarks>参照 MS SQLServer 数据库的相关用法</remarks>
         public override string GetInsertOutputClause(string primaryKeyName)
         {
-            return string.Format(" OUTPUT INSERTED.[{0}]", primaryKeyName);
+            return $" OUTPUT INSERTED.[{primaryKeyName}]";
         }
     }
 }

@@ -145,7 +145,7 @@ namespace XData.Core.ExpressionVisitors
         {
             var lastNode = nodeTypes.Peek();
             nodeTypes.Push(node.NodeType);
-            var value = node.Value;// builber.Context.DatabaseType.MapParameterValue(node.Value);
+            var value = node.Value; // builber.Context.DatabaseType.MapParameterValue(node.Value);
             if (value is IEnumerable && !(value is string))
             {
                 var enumer = value as IEnumerable;
@@ -157,9 +157,24 @@ namespace XData.Core.ExpressionVisitors
             }
             else
             {
-                sql += privoder.GetParameterIndex();
-                privoder._parameters.Add(value);
+                if (lastNode == ExpressionType.Block)
+                {
+                    if (value.Equals(true))
+                    {
+                        sql += "(1 = 1)";
+                    }
+                    else
+                    {
+                        sql += "(1 = 0)";
+                    }
+                }
+                else
+                {
+                    sql += privoder.GetParameterIndex();
+                    privoder.parameters.Add(value);
+                }
             }
+
             nodeTypes.Pop();
             return node;
         }
@@ -168,6 +183,10 @@ namespace XData.Core.ExpressionVisitors
         {
             var lastNode = nodeTypes.Peek();
             var member = node.Member;
+            //if (node.Expression == null)
+            //{
+            //    throw Error.NotSupportedException("不支持静态成员转换成Sql。Member："+ member.DeclaringType.Name+"."+member.Name);
+            //}
 
             if (member.DeclaringType.IsGenericType && member.DeclaringType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
@@ -186,7 +205,7 @@ namespace XData.Core.ExpressionVisitors
 
             object value;
             var hasValue = TryGetExpressionValue(node, out value);
-            var namedType = typeVisitor.Get(node.Expression.Type);
+            var namedType = typeVisitor.Get(node.Expression?.Type);
             if (namedType != null)
             {
                 if (lastNode == ExpressionType.MemberAccess)
@@ -204,7 +223,7 @@ namespace XData.Core.ExpressionVisitors
                     if (hasValue)
                     {
                         sql += privoder.GetParameterIndex();
-                        privoder._parameters.Add(value);
+                        privoder.parameters.Add(value);
                     }
                     else
                     {
@@ -218,7 +237,7 @@ namespace XData.Core.ExpressionVisitors
                         {
                             sql += " = ";
                             sql += privoder.GetParameterIndex();
-                            privoder._parameters.Add(true);
+                            privoder.parameters.Add(true);
                         }
                     }
                 }
@@ -230,7 +249,7 @@ namespace XData.Core.ExpressionVisitors
                 if (hasValue)
                 {
                     sql += privoder.GetParameterIndex();
-                    privoder._parameters.Add(value);
+                    privoder.parameters.Add(value);
                 }
                 else
                 {
@@ -254,7 +273,7 @@ namespace XData.Core.ExpressionVisitors
                 if (hasValue)
                 {
                     sql += privoder.GetParameterIndex();
-                    privoder._parameters.Add(value);
+                    privoder.parameters.Add(value);
                 }
                 else
                 {
@@ -414,7 +433,7 @@ namespace XData.Core.ExpressionVisitors
                         sql += "'%'+";
                         sql += privoder.GetParameterIndex();
                         sql += "+'%'";
-                        privoder._parameters.Add(value);
+                        privoder.parameters.Add(value);
                     }
                     else
                     {
@@ -428,7 +447,7 @@ namespace XData.Core.ExpressionVisitors
                     {
                         sql += privoder.GetParameterIndex();
                         sql += "+'%'";
-                        privoder._parameters.Add(value);
+                        privoder.parameters.Add(value);
                     }
                     else
                     {
@@ -441,7 +460,7 @@ namespace XData.Core.ExpressionVisitors
                     {
                         sql += "'%'+";
                         sql += privoder.GetParameterIndex();
-                        privoder._parameters.Add(value);
+                        privoder.parameters.Add(value);
                     }
                     else
                     {
@@ -455,7 +474,7 @@ namespace XData.Core.ExpressionVisitors
                     if (hasValue)
                     {
                         sql += privoder.GetParameterIndex();
-                        privoder._parameters.Add(value);
+                        privoder.parameters.Add(value);
                     }
                     else
                     {
@@ -487,8 +506,17 @@ namespace XData.Core.ExpressionVisitors
                 var member = exp as MemberExpression;
                 var m = member.Member;
 
-                object obj;
-                if (TryGetExpressionValue(member.Expression, out obj))
+                object obj = null;
+                var needInvoke = member.Expression == null;
+                if (!needInvoke)
+                {
+                    needInvoke = TryGetExpressionValue(member.Expression, out obj);
+                    if (needInvoke && obj == null)
+                    {
+                        throw new XDataException("表达式的节点值错误");
+                    }
+                }
+                if (needInvoke)
                 {
                     if (m is PropertyInfo)
                     {
@@ -520,7 +548,7 @@ namespace XData.Core.ExpressionVisitors
             foreach (var v in enumer)
             {
                 sql += privoder.GetParameterIndex() + ",";
-                privoder._parameters.Add(v);
+                privoder.parameters.Add(v);
             }
             sql = sql.TrimEnd(',');
             sql += ")";
@@ -529,7 +557,8 @@ namespace XData.Core.ExpressionVisitors
         #endregion
 
         #region Public Methods
-        public string ToSql()
+
+        private string ToSql()
         {
             if (sql.IsNullOrWhiteSpace())
             {

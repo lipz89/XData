@@ -28,24 +28,24 @@ namespace XData.Meta
             AddType<byte[]>();
         }
 
-        private static readonly List<Type> Types = new List<Type>();
+        private static readonly List<Type> types = new List<Type>();
 
-        public static void AddType<T>()
+        private static void AddType<T>()
         {
             AddType(typeof(T));
         }
 
-        public static void AddType(Type type)
+        private static void AddType(Type type)
         {
-            if (!Types.Contains(type))
+            if (!types.Contains(type))
             {
-                Types.Add(type);
+                types.Add(type);
             }
         }
 
         public static bool ContainsType(Type type)
         {
-            return Types.Contains(type.NonNullableType());
+            return types.Contains(type.NonNullableType());
         }
 
         public static bool IsSimpleType(Type type)

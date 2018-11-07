@@ -317,7 +317,7 @@ namespace XData.Meta
             {
                 return TableKeys[type].ColumnName;
             }
-            return string.Empty;
+            return null;
         }
 
         /// <summary>

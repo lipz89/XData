@@ -17,10 +17,9 @@ namespace XData.XBuilder
     internal sealed class Update<T> : SqlBuilber, IExecutable
     {
         #region Fields
-        private bool _hasKeyWhere;
+        private bool hasKeyWhere;
         private readonly Strings setterString = new Strings();
         private Where<T> where;
-        private string _wherePart;
         #endregion
 
         #region Properties
@@ -31,10 +30,10 @@ namespace XData.XBuilder
         {
             get
             {
-                var ps = this._parameters.ToList();
+                var ps = this.parameters.ToList();
                 if (this.where != null)
                 {
-                    ps.AddRange(this.where._parameters);
+                    ps.AddRange(this.where.parameters);
                 }
                 return ps.AsReadOnly();
             }
@@ -83,11 +82,11 @@ namespace XData.XBuilder
                     {
                         this.setterString.Add(string.Format("{0}={1}",
                             EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                        this._parameters.Add(newValue);
+                        this.parameters.Add(newValue);
                     }
                 }
             }
-            if (!this._parameters.Any())
+            if (!this.parameters.Any())
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
@@ -118,10 +117,10 @@ namespace XData.XBuilder
                     var newValue = memAccess(newEntity);
                     this.setterString.Add(string.Format("{0}={1}",
                         EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this._parameters.Add(newValue);
+                    this.parameters.Add(newValue);
                 }
             }
-            if (!this._parameters.Any())
+            if (!this.parameters.Any())
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
@@ -145,7 +144,7 @@ namespace XData.XBuilder
                 var newExp = Expression.Equal(mem, keyExp);
                 var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
                 this.Where(lambda);
-                _hasKeyWhere = true;
+                this.hasKeyWhere = true;
             }
             else
             {
@@ -180,10 +179,10 @@ namespace XData.XBuilder
 
                     this.setterString.Add(string.Format("{0}={1}",
                         EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this._parameters.Add(newValue);
+                    this.parameters.Add(newValue);
                 }
             }
-            if (!this._parameters.Any())
+            if (!this.parameters.Any())
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
@@ -218,10 +217,10 @@ namespace XData.XBuilder
 
                     this.setterString.Add(string.Format("{0}={1}",
                         EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this._parameters.Add(newValue);
+                    this.parameters.Add(newValue);
                 }
             }
-            if (!this._parameters.Any())
+            if (!this.parameters.Any())
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
@@ -253,10 +252,10 @@ namespace XData.XBuilder
                 {
                     this.setterString.Add(string.Format("{0}={1}",
                         EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this._parameters.Add(fieldValues[column.Member.Name]);
+                    this.parameters.Add(fieldValues[column.Member.Name]);
                 }
             }
-            if (!this._parameters.Any())
+            if (!this.parameters.Any())
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
@@ -269,25 +268,24 @@ namespace XData.XBuilder
         #endregion
 
         #region Where
+
         /// <summary>
         /// 更新条件
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
-        private Update<T> Where(Expression<Func<T, bool>> expression)
+        private void Where(Expression<Func<T, bool>> expression)
         {
             if (expression == null)
             {
                 throw Error.ArgumentNullException(nameof(expression));
             }
-            if (_hasKeyWhere)
+            if (hasKeyWhere)
             {
                 throw Error.Exception("已经指定了主键列为Where条件。");
             }
             this.where = this.where ?? new Where<T>(Context, this);
             this.where.Add(expression);
-            this._wherePart = null;
-            return this;
         }
 
         #endregion
@@ -310,15 +308,7 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            return string.Format("UPDATE {0} SET {1} {2}", tableName, this.setterString, this.GetWherePart());
-        }
-        internal string GetWherePart()
-        {
-            if (this._wherePart.IsNullOrWhiteSpace() && this.where != null)
-            {
-                this._wherePart = this.where.ToSql();
-            }
-            return _wherePart;
+            return string.Format("UPDATE {0} SET {1} {2}", tableName, this.setterString, this.where?.ToSql());
         }
         #endregion
     }

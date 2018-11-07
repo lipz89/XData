@@ -1,9 +1,4 @@
-﻿
-using System;
-using System.Data;
-
-
-namespace XData.Core.DatabaseTypes
+﻿namespace XData.Core.DatabaseTypes
 {
     /// <summary>
     /// Oracle 数据源
@@ -13,9 +8,9 @@ namespace XData.Core.DatabaseTypes
         /// <summary>
         /// 获取 SQL 参数名称前缀
         /// </summary>
-        /// <param name="ConnectionString">数据源连接字符串</param>
+        /// <param name="connectionString">数据源连接字符串</param>
         /// <returns>参数名称前缀</returns>
-        public override string GetParameterPrefix(string ConnectionString)
+        public override string GetParameterPrefix(string connectionString)
         {
             return ":";
         }
@@ -38,7 +33,7 @@ namespace XData.Core.DatabaseTypes
         {
             if (str[0] == '"' && str[str.Length - 1] == '"') return str;
 
-            return string.Format("\"{0}\"", str/*.ToUpperInvariant()*/);
+            return $"\"{str}\"";
         }
 
         ///// <summary>

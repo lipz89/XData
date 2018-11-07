@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace XData.XBuilder
+namespace XData.XBuilder.Include
 {
     internal interface IInclude<T>
     {

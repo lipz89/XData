@@ -12,9 +12,9 @@ namespace XData.XBuilder
     internal sealed class Where<T> : SqlBuilber
     {
         #region Fields
-        private Expression _expression;
-        internal ParameterExpression _parameter;
-        private SqlBuilber privoder;
+        private Expression whereExpression;
+        private ParameterExpression parameter;
+        private readonly SqlBuilber privoder;
         #endregion
 
         #region Constuctors
@@ -31,32 +31,16 @@ namespace XData.XBuilder
         /// <param name="expression"></param>
         public void Add(Expression<Func<T, bool>> expression)
         {
-            if (_expression == null)
+            if (whereExpression == null)
             {
-                _expression = expression.Body;
-                _parameter = expression.Parameters[0];
+                whereExpression = expression.Body;
+                parameter = expression.Parameters[0];
             }
             else
             {
-                _expression = Expression.AndAlso(_expression, ParameterReplaceVisitor.Replace(expression.Body, _parameter));
+                whereExpression = Expression.AndAlso(whereExpression, ParameterReplaceVisitor.Replace(expression.Body, parameter));
             }
         }
-        ///// <summary>
-        ///// 添加一个查询条件
-        ///// </summary>
-        ///// <param name="expression"></param>
-        //public void AddOr(Expression<Func<T, bool>> expression)
-        //{
-        //    if (_expression == null)
-        //    {
-        //        _expression = expression.Body;
-        //        _parameter = expression.Parameters[0];
-        //    }
-        //    else
-        //    {
-        //        _expression = Expression.OrElse(_expression, ParameterReplaceVisitor.Replace(expression.Body, _parameter));
-        //    }
-        //}
         #endregion
 
         #region SqlBuilder
@@ -67,10 +51,15 @@ namespace XData.XBuilder
         /// <returns></returns>
         public override string ToSql()
         {
-            var wb = SqlExpressionVistor.Visit(_expression, privoder);
+            var wb = SqlExpressionVistor.Visit(whereExpression, privoder);
             return string.Format(" WHERE {0}", wb);
         }
 
         #endregion
+
+        internal Where<T> Copy(SqlBuilber newPrivoder)
+        {
+            return new Where<T>(Context, newPrivoder) { whereExpression = this.whereExpression, parameter = this.parameter };
+        }
     }
 }

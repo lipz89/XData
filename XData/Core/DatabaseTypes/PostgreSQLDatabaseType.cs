@@ -27,7 +27,7 @@
         {
             if (str[0] == '"' && str[str.Length - 1] == '"') return str;
 
-            return string.Format("\"{0}\"", str);
+            return $"\"{str}\"";
         }
 
         ///// <summary>

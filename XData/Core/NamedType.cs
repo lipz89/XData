@@ -51,11 +51,8 @@ namespace XData.Core
             {
                 return defaultSql;
             }
-            if (cache.ContainsKey(member))
-            {
-                return cache[member];
-            }
-            return null;
+
+            return cache.Get(member);
         }
 
         public string GetSql(MemberInfo member, SqlBuilber builber)

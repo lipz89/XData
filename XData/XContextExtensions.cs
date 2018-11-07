@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
-
 using XData.Common;
 using XData.Core;
 using XData.Extentions;
@@ -17,27 +14,6 @@ namespace XData
     public partial class XContext
     {
         #region SqlQuery
-
-        /// <summary>
-        /// 从数据库查询数据并直接转换成目标实体
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <returns>返回实体序列</returns>
-        public IEnumerable<T> SqlQuery<T>(string sql)
-        {
-            return this.SqlQuery<T>(sql, CommandType.Text);
-        }
-
-        /// <summary>
-        /// 从数据库查询数据并直接转换成目标实体
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <param name="commandType">查询类型</param>
-        /// <returns>返回实体序列</returns>
-        public IEnumerable<T> SqlQuery<T>(string sql, CommandType commandType)
-        {
-            return this.SqlQuery<T>(null, sql, commandType);
-        }
 
         /// <summary>
         /// 从数据库查询数据并直接转换成目标实体
@@ -57,7 +33,7 @@ namespace XData
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns>返回实体序列</returns>
-        public IEnumerable<T> SqlQuery<T>(string sql, CommandType commandType, params DbParameter[] parameters)
+        public IEnumerable<T> SqlQuery<T>(string sql, CommandType commandType = CommandType.Text, params DbParameter[] parameters)
         {
             return SqlQuery<T>(null, sql, commandType, parameters);
         }
@@ -70,7 +46,7 @@ namespace XData
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns>返回实体序列</returns>
-        public IEnumerable<T> SqlQuery<T>(Page page, string sql, CommandType commandType, params DbParameter[] parameters)
+        internal IEnumerable<T> SqlQuery<T>(Page page, string sql, CommandType commandType = CommandType.Text, params DbParameter[] parameters)
         {
             DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
@@ -85,7 +61,7 @@ namespace XData
                 }
 
                 IDataReader reader;
-                var log = this.LogFormatter(sql, commandType, parameters);
+                this.LogFormatter(sql, commandType, parameters);
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -129,11 +105,10 @@ namespace XData
         /// </summary>
         /// <typeparam name="T">查询结果实体类型</typeparam>
         /// <param name="tableName">表名称，如果表名和类型<typeparamref name="T"/>名称一致或者在<see cref="T:XData.Meta.MapperConfig"/>中配置了表名，本参数可以省略</param>
-        /// <param name="useCache">true表示使用已缓存结果，false表示每次获取结果都从数据库读取</param>
         /// <returns></returns>
-        public IQuery<T> Query<T>(string tableName = null, bool useCache = true)
+        public IQuery<T> Query<T>(string tableName = null)
         {
-            return new Query<T>(this, tableName, useCache);
+            return new Query<T>(this, tableName);
         }
 
         /// <summary>
@@ -404,7 +379,7 @@ namespace XData
         /// <returns>成功返回true，否则返回false</returns>
         public int Insert<T>(IEnumerable<IDictionary<string, object>> fieldValues)
         {
-            return new InsertList<T>(this, fieldValues).Execute() ;
+            return new InsertList<T>(this, fieldValues).Execute();
         }
 
         #endregion
@@ -463,7 +438,7 @@ namespace XData
             return list.ToArray();
         }
 
-        internal DbParameter[] CheckNullParameter(params DbParameter[] parameters)
+        private DbParameter[] CheckNullParameter(params DbParameter[] parameters)
         {
             foreach (var parameter in parameters)
             {
@@ -474,5 +449,17 @@ namespace XData
         }
 
         #endregion
+
+        //#region Transcation
+
+
+        //public XContext BeginTransaction(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
+        //{
+        //    var ctx = new XContext(this.ConnectionString, this.ProviderName, isolationLevel);
+        //    ctx.SqlLog = this.SqlLog;
+        //    return ctx;
+        //}
+
+        //#endregion
     }
 }

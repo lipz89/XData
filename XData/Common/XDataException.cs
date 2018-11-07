@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Data;
-using System.Data.Common;
 using System.Runtime.Serialization;
 
 namespace XData.Common
@@ -30,7 +29,7 @@ namespace XData.Common
         /// <summary>
         /// 引发异常的Sql执行参数
         /// </summary>
-        public DbParameter[] Parameters { get; internal set; }
+        public IDbDataParameter[] Parameters { get; internal set; }
 
         internal XDataException()
         {

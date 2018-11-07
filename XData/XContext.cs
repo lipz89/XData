@@ -13,7 +13,7 @@ namespace XData
     /// <summary>
     /// 数据库上下文
     /// </summary>
-    public sealed partial class XContext //: IDisposable
+    public sealed partial class XContext : IDisposable
     {
         private Action<string> sqlLog;
         private bool isDisposed = false;
@@ -62,6 +62,8 @@ namespace XData
             }
         }
 
+        private XTransaction Transaction { get; set; }
+
         #endregion
 
         #region Constructors
@@ -81,11 +83,25 @@ namespace XData
             {
                 throw Error.ArgumentNullException(nameof(providerName));
             }
+
             ProviderName = providerName;
             DbProviderFactory = DbProviderFactories.GetFactory(this.ProviderName);
             ConnectionString = connectionString;
             DatabaseType = DatabaseType.Resolve(DbProviderFactory.GetType().FullName, ProviderName);
         }
+        /// <summary>
+        /// 初始化数据库上下文
+        /// </summary>
+        /// <param name="connectionString">数据库连接字符串</param>
+        /// <param name="providerName">数据库连接提供程序</param>
+        /// <param name="inTranscation"></param>
+        public XContext(string connectionString, string providerName, IsolationLevel inTranscation = IsolationLevel.ReadCommitted)
+            : this(connectionString, providerName)
+        {
+            var conn = this.CreateConnection();
+            this.Transaction = new XTransaction(conn, inTranscation);
+        }
+
         #endregion
 
         #region internal methods
@@ -94,8 +110,12 @@ namespace XData
         /// 创建数据库连接类
         /// </summary>
         /// <returns>返回数据库连接类</returns>
-        internal DbConnection CreateConnection()
+        private DbConnection CreateConnection()
         {
+            if (this.Transaction != null)
+            {
+                return this.Transaction.Connection;
+            }
             DbConnection dbConnection = null;
             if (this.DbProviderFactory != null)
             {
@@ -111,7 +131,7 @@ namespace XData
         /// 创建数据库命令执行类
         /// </summary>
         /// <returns>返回数据库命令执行类</returns>
-        internal DbCommand CreateCommand()
+        private DbCommand CreateCommand()
         {
             DbCommand dbCommand = null;
             if (this.DbProviderFactory != null)
@@ -126,7 +146,7 @@ namespace XData
         /// 创建用于填充<see cref="T:System.Data.DataSet" />和更新数据源类
         /// </summary>
         /// <returns>返回用于填充<see cref="T:System.Data.DataSet" />和更新数据源类</returns>
-        internal DbDataAdapter CreateDataAdapter()
+        private DbDataAdapter CreateDataAdapter()
         {
             DbDataAdapter result = null;
             if (this.DbProviderFactory != null)
@@ -138,6 +158,10 @@ namespace XData
 
         private void CloseConnection(DbConnection dbConnection)
         {
+            if (this.Transaction != null)
+            {
+                return;
+            }
             if (dbConnection != null && dbConnection.State != ConnectionState.Closed)
             {
                 dbConnection.Close();
@@ -154,7 +178,7 @@ namespace XData
         /// 创建用来向 <see cref="T:System.Data.IDbCommand" /> 对象表示一个参数类
         /// </summary>
         /// <returns>返回用来向 <see cref="T:System.Data.IDbCommand" /> 对象表示一个参数类</returns>
-        public DbParameter CreateParameter()
+        private DbParameter CreateParameter()
         {
             DbParameter result = null;
             if (this.DbProviderFactory != null)
@@ -169,7 +193,7 @@ namespace XData
         /// </summary>
         /// <param name="name">参数名称</param>
         /// <returns>返回用来向 <see cref="T:System.Data.IDbCommand" /> 对象表示一个参数类</returns>
-        public DbParameter CreateParameter(string name)
+        private DbParameter CreateParameter(string name)
         {
             DbParameter parameter = this.CreateParameter();
             parameter.ParameterName = name;
@@ -182,7 +206,7 @@ namespace XData
         /// <param name="name">参数名称</param>
         /// <param name="value">参数值</param>
         /// <returns>返回用来向 <see cref="T:System.Data.IDbCommand" /> 对象表示一个参数类</returns>
-        public DbParameter CreateParameter(string name, object value)
+        private DbParameter CreateParameter(string name, object value)
         {
             DbParameter parameter = this.CreateParameter(name);
             parameter.Value = value;
@@ -211,27 +235,6 @@ namespace XData
         /// <summary>
         /// 对连接对象执行 SQL 语句
         /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <returns>返回受影响的行数</returns>
-        public int ExecuteNonQuery(string sql)
-        {
-            return this.ExecuteNonQuery(sql, CommandType.Text);
-        }
-
-        /// <summary>
-        /// 对连接对象执行 SQL 语句
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <param name="commandType">查询类型</param>
-        /// <returns>返回受影响的行数</returns>
-        public int ExecuteNonQuery(string sql, CommandType commandType)
-        {
-            return this.ExecuteNonQuery(sql, commandType, null);
-        }
-
-        /// <summary>
-        /// 对连接对象执行 SQL 语句
-        /// </summary>
         /// <param name="sql">SQL查询语句</param> 
         /// <param name="parameters">执行参数</param>
         /// <returns>返回受影响的行数</returns>
@@ -247,8 +250,9 @@ namespace XData
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns>返回受影响的行数</returns>
-        public int ExecuteNonQuery(string sql, CommandType commandType, params DbParameter[] parameters)
+        public int ExecuteNonQuery(string sql, CommandType commandType = CommandType.Text, params DbParameter[] parameters)
         {
+            this.Check();
             int result = 0;
             DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
@@ -261,7 +265,7 @@ namespace XData
                 {
                     dbCommand.Parameters.AddRange(pars);
                 }
-                var log = this.LogFormatter(sql, commandType, pars);
+                this.LogFormatter(sql, commandType, pars);
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -290,13 +294,14 @@ namespace XData
         /// <returns>返回受影响的行数</returns>
         public int ExecuteNonQuery(IList<string> sqls)
         {
+            this.Check();
             int num = 0;
             DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
             {
                 dbCommand.Connection = dbConnection;
                 dbCommand.CommandType = CommandType.Text;
-                var log = string.Join(Environment.NewLine, sqls);
+                //var log = string.Join(Environment.NewLine, sqls);
                 string currentSql = null;
                 try
                 {
@@ -331,6 +336,7 @@ namespace XData
         /// <returns>返回受影响的行数</returns>
         public int ExecuteNonQuery(IEnumerable<KeyValuePair<string, DbParameter[]>> sqls)
         {
+            this.Check();
             int num = 0;
             DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
@@ -349,7 +355,7 @@ namespace XData
                         currentSql = current.Key;
                         dbCommand.CommandText = currentSql;
                         var pars = CheckNullParameter(current.Value);
-                        var log = this.LogFormatter(currentSql, CommandType.Text, pars);
+                        this.LogFormatter(currentSql, CommandType.Text, pars);
                         if (!pars.IsNullOrEmpty())
                         {
                             dbCommand.Parameters.AddRange(pars);
@@ -373,28 +379,7 @@ namespace XData
         #endregion
 
         #region ExecuteScalar
-
-        /// <summary>
-        /// 执行查询，并返回查询所返回的结果集中第一行的第一列。所有其他的列和行将被忽略。
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <returns>返回结果集中第一行的第一列</returns>
-        public object ExecuteScalar(string sql)
-        {
-            return this.ExecuteScalar(sql, CommandType.Text);
-        }
-
-        /// <summary>
-        /// 执行查询，并返回查询所返回的结果集中第一行的第一列。所有其他的列和行将被忽略。
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <param name="commandType">查询类型</param>
-        /// <returns>返回结果集中第一行的第一列</returns>
-        public object ExecuteScalar(string sql, CommandType commandType)
-        {
-            return this.ExecuteScalar(sql, commandType, null);
-        }
-
+        
         /// <summary>
         /// 执行查询，并返回查询所返回的结果集中第一行的第一列。所有其他的列和行将被忽略。
         /// </summary>
@@ -413,8 +398,9 @@ namespace XData
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns>返回结果集中第一行的第一列</returns>
-        public object ExecuteScalar(string sql, CommandType commandType, params DbParameter[] parameters)
+        public object ExecuteScalar(string sql, CommandType commandType = CommandType.Text, params DbParameter[] parameters)
         {
+            this.Check();
             object result = null;
             DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
@@ -427,7 +413,7 @@ namespace XData
                 {
                     dbCommand.Parameters.AddRange(pars);
                 }
-                var log = this.LogFormatter(sql, commandType, pars);
+                this.LogFormatter(sql, commandType, pars);
                 try
                 {
                     if (dbConnection.State == ConnectionState.Closed)
@@ -451,28 +437,7 @@ namespace XData
         #endregion
 
         #region GetDataSet
-
-        /// <summary>
-        /// 从数据源创建数据缓存
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <returns>返回数据缓存</returns>
-        public DataSet GetDataSet(string sql)
-        {
-            return this.GetDataSet(sql, CommandType.Text);
-        }
-
-        /// <summary>
-        /// 从数据源创建数据缓存
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <param name="commandType">查询类型</param>
-        /// <returns>返回数据缓存</returns>
-        public DataSet GetDataSet(string sql, CommandType commandType)
-        {
-            return this.GetDataSet(sql, commandType, null);
-        }
-
+        
         /// <summary>
         /// 从数据源创建数据缓存
         /// </summary>
@@ -491,8 +456,9 @@ namespace XData
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns>返回数据缓存</returns>
-        public DataSet GetDataSet(string sql, CommandType commandType, params DbParameter[] parameters)
+        public DataSet GetDataSet(string sql, CommandType commandType = CommandType.Text, params DbParameter[] parameters)
         {
+            this.Check();
             DataSet dataSet = new DataSet();
             DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
@@ -506,7 +472,7 @@ namespace XData
                     dbCommand.Parameters.AddRange(pars);
                 }
 
-                var log = this.LogFormatter(sql, commandType, pars);
+                this.LogFormatter(sql, commandType, pars);
                 using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
                 {
                     dbDataAdapter.SelectCommand = dbCommand;
@@ -533,28 +499,7 @@ namespace XData
         #endregion
 
         #region GetDataTable
-
-        /// <summary>
-        /// 从数据源创建数据缓存
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <returns>返回数据缓存</returns>
-        public DataTable GetDataTable(string sql)
-        {
-            return this.GetDataTable(sql, CommandType.Text);
-        }
-
-        /// <summary>
-        /// 从数据源创建数据缓存
-        /// </summary>
-        /// <param name="sql">SQL查询语句</param>
-        /// <param name="commandType">查询类型</param>
-        /// <returns>返回数据缓存</returns>
-        public DataTable GetDataTable(string sql, CommandType commandType)
-        {
-            return this.GetDataTable(sql, commandType, null);
-        }
-
+        
         /// <summary>
         /// 从数据源创建数据缓存
         /// </summary>
@@ -573,8 +518,9 @@ namespace XData
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns>返回数据缓存</returns>
-        public DataTable GetDataTable(string sql, CommandType commandType, params DbParameter[] parameters)
+        public DataTable GetDataTable(string sql, CommandType commandType = CommandType.Text, params DbParameter[] parameters)
         {
+            this.Check();
             DataTable dataTable = new DataTable();
             DbConnection dbConnection = CreateConnection();
             using (DbCommand dbCommand = this.CreateCommand())
@@ -591,7 +537,7 @@ namespace XData
                 using (DbDataAdapter dbDataAdapter = this.CreateDataAdapter())
                 {
                     dbDataAdapter.SelectCommand = dbCommand;
-                    var log = this.LogFormatter(sql, commandType, pars);
+                    this.LogFormatter(sql, commandType, pars);
                     try
                     {
                         dbDataAdapter.Fill(dataTable);
@@ -620,7 +566,7 @@ namespace XData
         /// <param name="commandType">查询类型</param>
         /// <param name="parameters">执行参数</param>
         /// <returns></returns>
-        private string LogFormatter(string sql, CommandType commandType, DbParameter[] parameters)
+        private void LogFormatter(string sql, CommandType commandType, DbParameter[] parameters)
         {
             List<string> list = new List<string>();
             //list.Add(string.Format("ConnectionString:{0}", this.ConnectionString));
@@ -648,12 +594,11 @@ namespace XData
             }
             var sqlString = string.Join(Environment.NewLine, list);
             this.sqlLog?.Invoke(sqlString + Environment.NewLine);
-            return sqlString;
         }
 
         private XDataException NewException(Exception innerException, string sql, DbParameter[] parameters = null, CommandType commandType = CommandType.Text)
         {
-            return new XDataException(innerException)
+            var ex = new XDataException(innerException)
             {
                 Parameters = parameters?.ToArray(),
                 ConnectionString = this.ConnectionString,
@@ -661,6 +606,8 @@ namespace XData
                 CommandType = commandType,
                 SqlString = sql
             };
+            this.Transaction?.AddException(ex);
+            return ex;
         }
 
         #endregion
@@ -683,19 +630,22 @@ namespace XData
             this.sqlLog = null;
             this.isDisposed = true;
 
+            this.Transaction?.Dispose();
+            this.Transaction = null;
+
             if (disposing)
             {
                 GC.SuppressFinalize(this);
             }
         }
 
-        ///// <summary>
-        ///// 释放<see cref="XContext" />的非托管资源。
-        ///// </summary>
-        //public void Dispose()
-        //{
-        //    Dispose(true);
-        //}
+        /// <summary>
+        /// 释放<see cref="XContext" />的非托管资源。
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+        }
 
         /// <summary>
         /// 析构函数

@@ -10,13 +10,13 @@ namespace XData.Core
     /// <summary>
     /// 数据源类型基类
     /// </summary>
-    abstract class DatabaseType
+    public abstract class DatabaseType
     {
         /// <summary>
         /// 获取 SQL 参数名称前缀
         /// </summary>
         /// <returns>参数名称前缀</returns>
-        public virtual string GetParameterPrefix(string ConnectionString)
+        public virtual string GetParameterPrefix(string connectionString)
         {
             return "@";
         }
@@ -28,9 +28,9 @@ namespace XData.Core
         /// <returns>转换后的值</returns>
         public virtual object MapParameterValue(object value)
         {
-            if (value is bool)
+            if (value is bool b)
             {
-                return (bool)value ? 1 : 0;
+                return b ? 1 : 0;
             }
 
             return value;
@@ -72,7 +72,7 @@ namespace XData.Core
             {
                 return str;
             }
-            return string.Format("[{0}]", str);
+            return $"[{str}]";
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace XData.Core
             if (typeName.StartsWith("Oracle"))
                 return Singleton<OracleDatabaseType>.Instance;
             if (typeName.StartsWith("SQLite"))
-                return Singleton<SQLiteDatabaseType>.Instance;
+                return Singleton<SqliteDatabaseType>.Instance;
             if (typeName.StartsWith("System.Data.SqlClient.") || typeName.StartsWith("SqlConnection"))
             {
                 return Singleton<SqlServerDatabaseType>.Instance;
@@ -122,7 +122,7 @@ namespace XData.Core
                 if (providerName.IndexOf("Oracle", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     return Singleton<OracleDatabaseType>.Instance;
                 if (providerName.IndexOf("SQLite", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                    return Singleton<SQLiteDatabaseType>.Instance;
+                    return Singleton<SqliteDatabaseType>.Instance;
             }
             // Assume SQL Server
             return Singleton<SqlServerDatabaseType>.Instance;

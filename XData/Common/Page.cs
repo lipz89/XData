@@ -45,6 +45,11 @@ namespace XData.Common
         {
             get { return PageIndex <= 1 ? 0 : (PageIndex - 1) * PageSize; }
         }
+
+        public override string ToString()
+        {
+            return $"PageIndex:{PageIndex};PageSize:{PageSize}";
+        }
     }
 
     /// <summary>
@@ -77,5 +82,9 @@ namespace XData.Common
         /// 当前页数据
         /// </summary>
         public List<T> Items { get; set; }
+        public override string ToString()
+        {
+            return $"PageIndex:{PageIndex};PageSize:{PageSize};TotalPages:{TotalPages};TotalRecords:{TotalRecords};CurrentPageCount:{Items.Count}";
+        }
     }
 }

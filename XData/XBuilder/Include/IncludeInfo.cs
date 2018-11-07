@@ -5,7 +5,7 @@ using System.Reflection;
 using XData.Common;
 using XData.Extentions;
 
-namespace XData.XBuilder
+namespace XData.XBuilder.Include
 {
     internal abstract class IncludeInfo<T, TRelaction, TKey> : IInclude<T>
     {
@@ -16,10 +16,11 @@ namespace XData.XBuilder
             RelectionKey = relectionKey.Compile();
             RelectionMember = relectionKey.GetMember();
         }
-        public XContext Context { get; }
-        public Func<T, TKey> Key { get; }
-        public Func<TRelaction, TKey> RelectionKey { get; }
-        public MemberInfo RelectionMember { get; }
+
+        protected XContext Context { get; }
+        protected Func<T, TKey> Key { get; }
+        protected Func<TRelaction, TKey> RelectionKey { get; }
+        private MemberInfo RelectionMember { get; }
 
         public abstract List<T> Invoke(List<T> list);
         public abstract T Invoke(T item);

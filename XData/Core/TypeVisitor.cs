@@ -11,7 +11,7 @@ namespace XData.Core
     /// </summary>
     internal class TypeVisitor
     {
-        internal readonly List<NamedType> typeNames = new List<NamedType>();
+        private readonly List<NamedType> typeNames = new List<NamedType>();
 
         public TypeVisitor()
         {
@@ -33,6 +33,10 @@ namespace XData.Core
         }
         internal NamedType Get(Type type)
         {
+            if (type == null)
+            {
+                return null;
+            }
             foreach (var typeName in typeNames)
             {
                 if (typeName.Type == type)

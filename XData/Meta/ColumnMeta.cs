@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 
 using XData.Common;
+using XData.Common.Fast;
 
 namespace XData.Meta
 {
@@ -47,13 +48,13 @@ namespace XData.Meta
         {
             get
             {
-                if (Member is PropertyInfo)
+                if (Member is PropertyInfo propertyInfo)
                 {
-                    return (Member as PropertyInfo).PropertyType;
+                    return propertyInfo.PropertyType;
                 }
-                if (Member is FieldInfo)
+                if (Member is FieldInfo fieldInfo)
                 {
-                    return (Member as FieldInfo).FieldType;
+                    return fieldInfo.FieldType;
                 }
                 return null;
             }
@@ -98,34 +99,34 @@ namespace XData.Meta
 
         public void SetValue(object target, object value)
         {
-            if (Member is PropertyInfo)
+            if (Member is PropertyInfo propertyInfo)
             {
-                (Member as PropertyInfo).SetValue(target, value);
+                propertyInfo.FastSetValue(target, value);
             }
-            else if (Member is FieldInfo)
+            else if (Member is FieldInfo fieldInfo)
             {
-                (Member as FieldInfo).SetValue(target, value);
+                fieldInfo.FastSetValue(target, value);
             }
         }
 
         public object GetValue(object target)
         {
-            if (Member is PropertyInfo)
+            if (Member is PropertyInfo propertyInfo)
             {
-                return (Member as PropertyInfo).GetValue(target);
+                return propertyInfo.FastGetValue(target);
             }
-            if (Member is FieldInfo)
+            if (Member is FieldInfo fieldInfo)
             {
-                return (Member as FieldInfo).GetValue(target);
+                return fieldInfo.FastGetValue(target);
             }
             return null;
         }
 
         public bool CanWrite()
         {
-            if (Member is PropertyInfo)
+            if (Member is PropertyInfo propertyInfo)
             {
-                return (Member as PropertyInfo).CanWrite;
+                return propertyInfo.CanWrite;
             }
             if (Member is FieldInfo)
             {
