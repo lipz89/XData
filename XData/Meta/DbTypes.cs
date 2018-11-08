@@ -9,21 +9,23 @@ namespace XData.Meta
     {
         static DbTypes()
         {
+            AddType<bool>();
+            AddType<byte>();
+            AddType<sbyte>();
+            AddType<short>();
+            AddType<ushort>();
+            AddType<char>();
             AddType<int>();
             AddType<uint>();
             AddType<long>();
             AddType<ulong>();
-            AddType<short>();
-            AddType<ushort>();
-            AddType<bool>();
-            AddType<byte>();
-            AddType<sbyte>();
-            AddType<decimal>();
-            AddType<double>();
             AddType<float>();
+            AddType<double>();
+            AddType<decimal>();
             AddType<string>();
             AddType<object>();
             AddType<DateTime>();
+            AddType<DateTimeOffset>();
             AddType<Guid>();
             AddType<byte[]>();
         }

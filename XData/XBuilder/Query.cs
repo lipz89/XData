@@ -551,7 +551,7 @@ namespace XData.XBuilder
 
         protected void GetMembers(Expression expression, Strings strs, MemberInfo member, string path = null)
         {
-            if (expression is MemberExpression)
+            if (expression is MemberExpression || expression is BinaryExpression)
             {
                 var sql = SqlExpressionVistor.Visit(expression, this);
                 var name = member.Name;
@@ -581,7 +581,7 @@ namespace XData.XBuilder
             var mems = newExp.Members;
             for (int i = 0; i < mems?.Count; i++)
             {
-                if (inits[i] is MemberExpression)
+                if (inits[i] is MemberExpression || inits[i] is BinaryExpression)
                 {
                     GetMembers(inits[i], strs, mems[i], path);
                 }

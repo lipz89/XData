@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using NUnit.Framework;
 using XData.Common.Fast;
 using XData.Extentions;
@@ -42,7 +45,6 @@ namespace Test
             Console.WriteLine(f);
         }
     }
-
 
 
     public class Model
@@ -104,6 +106,11 @@ namespace Test
         public void SetStaticField(string name)
         {
             Model.StaticField = name;
+        }
+
+        public object Test(string name)
+        {
+            return new { Name = name };
         }
     }
 }

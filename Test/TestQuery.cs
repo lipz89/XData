@@ -39,7 +39,7 @@ namespace Test
                     ValueReal = rd.NextDouble(),
                     ValueText = "测试" + i + "文本",
                     ValueTinyint = (byte)i,
-                    ValueNChar = 'A',
+                    ValueNChar = '测',
                 };
                 someValues.Add(sv);
             }

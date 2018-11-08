@@ -134,6 +134,7 @@ namespace XData.Common
                         }
                         args.Add(val);
                     }
+
                     var instance = constructor.FastCreate(args.ToArray());
 
                     foreach (var col in columns.Where(x => x.CanWrite()))

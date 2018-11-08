@@ -8,8 +8,8 @@ namespace XData.Common.Fast
     {
         public static Func<object[], T> CreateCreatorHandler<T>(ConstructorInfo constructorInfo)
         {
-            ParameterInfo[] paramsTypes = constructorInfo.GetParameters(); 
-            DynamicMethod method = new DynamicMethod("DynamicCreatorHandler", typeof(T), new[] { typeof(object[]) }, typeof(EmitHelper));
+            ParameterInfo[] paramsTypes = constructorInfo.GetParameters();
+            DynamicMethod method = new DynamicMethod("DynamicCreatorHandler", typeof(T), new[] { typeof(object[]) }, typeof(T));
 
             ILGenerator il = method.GetILGenerator();
 
@@ -36,7 +36,7 @@ namespace XData.Common.Fast
 
         public static Func<TTarget, TValue> CreateGetterHandler<TTarget, TValue>(FieldInfo fieldInfo)
         {
-            DynamicMethod method = new DynamicMethod("DynamicGetterHandler", typeof(TValue), new[] { typeof(TTarget) }, typeof(EmitHelper));
+            DynamicMethod method = new DynamicMethod("DynamicGetterHandler", typeof(TValue), new[] { typeof(TTarget) }, typeof(TTarget));
             ILGenerator il = method.GetILGenerator();
 
             il.Emit(OpCodes.Ldarg_0);
@@ -48,7 +48,7 @@ namespace XData.Common.Fast
 
         public static Action<TTarget, TValue> CreateSetterHandler<TTarget, TValue>(FieldInfo fieldInfo)
         {
-            DynamicMethod method = new DynamicMethod("DynamicSetterHandler", typeof(void), new[] { typeof(TTarget), typeof(TValue) }, typeof(EmitHelper));
+            DynamicMethod method = new DynamicMethod("DynamicSetterHandler", typeof(void), new[] { typeof(TTarget), typeof(TValue) }, typeof(TTarget));
             ILGenerator il = method.GetILGenerator();
 
             il.Emit(OpCodes.Ldarg_0);

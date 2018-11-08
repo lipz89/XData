@@ -15,6 +15,11 @@ namespace XData.Common.Fast
             creator = EmitHelper.CreateCreatorHandler<T>(constructorInfo);
         }
 
+        public CreatorWrapper(Func<object[], T> creator)
+        {
+            this.creator = creator;
+        }
+
         public T Create(params object[] parameters)
         {
             return creator(parameters);

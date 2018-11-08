@@ -65,6 +65,19 @@ namespace Test
                 new Menu() {ID = Guid.NewGuid(),Code = "DeleteAction",Name = "删除功能",MenuLevel = 1,ParentID = idMenus,IndexID = 5},
             };
 
+
+            foreach (var menu in menus)
+            {
+                if (menu.ParentID == null)
+                {
+                    menu.Url = "/" + menu.Code;
+                }
+                else
+                {
+                    var p = menus.FirstOrDefault(x => x.ID == menu.ParentID.Value);
+                    menu.Url = $"/{p.Code}/{menu.Code}";
+                }
+            }
             var ctx = Program.NewContext();
             var row = ctx.Insert<Menu>(menus);
             Console.WriteLine(row);

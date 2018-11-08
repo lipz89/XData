@@ -76,6 +76,7 @@
     <Compile Include="TestInclude.cs" />
     <Compile Include="TestInsert.cs" />
     <Compile Include="TestQuery.cs" />
+    <Compile Include="TestSelect.cs" />
     <Compile Include="TestUpdate.cs" />
   </ItemGroup>
   <ItemGroup>
