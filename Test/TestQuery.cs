@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 
 using NUnit.Framework;
-
+using Test.Models;
 using XData.Common;
 using XData.Core;
 
@@ -21,7 +21,7 @@ namespace Test
             {
                 var sv = new SomeValues()
                 {
-                    ID = i,
+                    Id = i,
                     ValueBit = false,
                     ValueInt = i,
                     ValueInt2 = rd.Next(Int32.MaxValue),
@@ -49,9 +49,8 @@ namespace Test
             someValues[2].ValueVarchar = "testVarA";
             someValues[3].ValueVarchar = "testVarB";
 
-            var db = Program.NewContext();
-            db.Delete<SomeValues>(null);
-            var row = db.Insert<SomeValues>(someValues);
+            Context.DeleteBy<SomeValues>(null);
+            var row = Context.Insert<SomeValues>(someValues);
             Assert.AreEqual(row, 100);
         }
 
@@ -61,8 +60,7 @@ namespace Test
         public void Test()
         {
             var ss = new List<string> { "testAProperty", "testBField", "testVarA", "testVarB", "testVarC", "testAPropertyC" };
-            var db = Program.NewContext();
-            var query = db.Query<SomeValues>().Where(x => ss.Contains(x.ValueVarchar)).OrderBy(x => x.ValueVarchar).Top(10);
+            var query = Context.Query<SomeValues>().Where(x => ss.Contains(x.ValueVarchar)).OrderBy(x => x.ValueVarchar).Top(10);
 
             var list = query.ToList();
             Console.WriteLine(list.Count);
@@ -72,12 +70,11 @@ namespace Test
         {
             var a = "testVarA";
             var b = "testVarB";
-            var db = Program.NewContext();
 
-            var query2 = db.Query<SomeValues>().Where(x => x.ValueVarchar == A).FirstOrDefault();
-            var query3 = db.Query<SomeValues>().Where(x => x.ValueVarchar == B).FirstOrDefault();
-            var query4 = db.Query<SomeValues>().Where(x => x.ValueVarchar == a).FirstOrDefault();
-            var query5 = db.Query<SomeValues>().Where(x => x.ValueVarchar == b).FirstOrDefault();
+            var query2 = Context.Query<SomeValues>().Where(x => x.ValueVarchar == A).FirstOrDefault();
+            var query3 = Context.Query<SomeValues>().Where(x => x.ValueVarchar == B).FirstOrDefault();
+            var query4 = Context.Query<SomeValues>().Where(x => x.ValueVarchar == a).FirstOrDefault();
+            var query5 = Context.Query<SomeValues>().Where(x => x.ValueVarchar == b).FirstOrDefault();
             Console.WriteLine(JsonConvert.SerializeObject(query2));
             Console.WriteLine(JsonConvert.SerializeObject(query3));
             Console.WriteLine(JsonConvert.SerializeObject(query4));
@@ -88,19 +85,16 @@ namespace Test
         public void TestLike()
         {
             string pattern = "%abc_d%";
-            var db = Program.NewContext();
-            var query = db.Query<SomeValues>().Where(x => x.ValueVarchar.SqlLike(pattern)).ToList();
+            var query = Context.Query<SomeValues>().Where(x => x.ValueVarchar.SqlLike(pattern)).ToList();
             Console.WriteLine(query.Count);
         }
 
         [Test, Order(100)]
         public void TestAggregate()
         {
-            var db = Program.NewContext();
+            Context.DeleteBy<SomeValues>(null);
 
-            db.Delete<SomeValues>(null);
-
-            var query = db.Query<SomeValues>();
+            var query = Context.Query<SomeValues>();
 
             var count = query.Count();
             Assert.AreEqual(count, 0);
@@ -112,7 +106,7 @@ namespace Test
             });
             Assert.Throws<XDataException>(() =>
             {
-                var min = query.Min(x => x.ID);
+                var min = query.Min(x => x.Id);
                 Console.WriteLine(min);
             });
 
@@ -124,9 +118,7 @@ namespace Test
         [Test]
         public void TestAggregate2()
         {
-            var db = Program.NewContext();
-
-            var query = db.Query<SomeValues>();
+            var query = Context.Query<SomeValues>();
 
             var count = query.Count();
             Assert.AreEqual(count, 100);
@@ -144,8 +136,7 @@ namespace Test
         [Test]
         public void TestQueryPage()
         {
-            var db = Program.NewContext();
-            var query = db.Query<SomeValues>();
+            var query = Context.Query<SomeValues>();
 
             var page = query.ToPage(2, 10);
             Console.WriteLine(page);
@@ -155,8 +146,7 @@ namespace Test
         [Test]
         public void TestQueryIEnumerable()
         {
-            var db = Program.NewContext();
-            var query = db.Query<SomeValues>().Where(x => (x.ValueVarchar + x.ValueVarchar).Length < 20).Top(5);
+            var query = Context.Query<SomeValues>().Where(x => (x.ValueVarchar + x.ValueVarchar).Length < 20).Top(5);
 
             var enumer = query.ToList();
             Console.WriteLine(enumer.Count);
@@ -170,8 +160,7 @@ namespace Test
         [Test]
         public void TestOrder()
         {
-            var db = Program.NewContext();
-            var query = db.Query<SomeValues>().Where(x => x.ValueInt.Between(10, 15)).OrderBy(x => x.ValueInt + 1);
+            var query = Context.Query<SomeValues>().Where(x => x.ValueInt.Between(10, 15)).OrderBy(x => x.ValueInt + 1);
             var l = query.ToList();
             Console.WriteLine(l.Count);
         }
@@ -179,15 +168,14 @@ namespace Test
         [Test]
         public void TestSingle()
         {
-            var db = Program.NewContext();
-            var q = db.GetFirstOrDefault<SomeValues>(x => x.ValueInt == 99);
+            var q = Context.GetFirstOrDefault<SomeValues>(x => x.ValueInt == 99);
             Console.WriteLine(JsonConvert.SerializeObject(q));
 
 
-            var q2 = db.GetByKey<SomeValues>(99, x => x.ID);
+            var q2 = Context.GetByKey<SomeValues>(99);
             Console.WriteLine(JsonConvert.SerializeObject(q2));
 
-            var q3 = db.GetByKey<SomeValues>(40);
+            var q3 = Context.GetByKey<SomeValues>(40);
             Console.WriteLine(JsonConvert.SerializeObject(q3));
         }
     }

@@ -1,10 +1,10 @@
 ﻿using System;
 
-namespace Test
+namespace Test.Models
 {
     public class SomeValues
     {
-        public int ID { get; set; }
+        public int Id { get; set; }
         public bool ValueBit { get; set; }
         public int ValueInt { get; set; }
         public int ValueInt2 { get; set; }

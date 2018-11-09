@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -8,7 +8,6 @@ using XData.Common.Fast;
 
 namespace XData.Meta
 {
-    [DebuggerDisplay("ColumnName:{ColumnName}, Member:{Member}")]
     internal class ColumnMeta
     {
         #region Fields
@@ -16,12 +15,6 @@ namespace XData.Meta
         #endregion
 
         #region Constructors
-
-        public ColumnMeta(MInfo member)
-        {
-            TableType = member.Type;
-            Member = member.Member;
-        }
 
         public ColumnMeta(MemberInfo member, Type type)
         {
@@ -37,11 +30,14 @@ namespace XData.Meta
 
         public Type TableType { get; }
 
-        public string ColumnName { get; internal set; }
+        public string ColumnName
+        {
+            get { return MapperConfig.GetColumnName(Member, TableType); }
+        }
 
         public string Name
         {
-            get { return Member?.Name; }
+            get { return Member.Name; }
         }
 
         public Type Type
@@ -64,8 +60,8 @@ namespace XData.Meta
         {
             get
             {
-                var k = MapperConfig.GetKeyMeta(TableType);
-                if (k != null && k.Member.Name == Member.Name)
+                var ks = MapperConfig.GetKeyMetas(TableType);
+                if (ks != null && ks.Any(x => x.Member.Name == Member.Name))
                 {
                     return false;
                 }
@@ -91,7 +87,10 @@ namespace XData.Meta
             }
         }
 
-        public Expression Expression { get; internal set; }
+        public Expression Expression
+        {
+            get { return ExpressionHelper.CreateGetterExpression(Member, TableType); }
+        }
 
         #endregion
 
@@ -122,17 +121,22 @@ namespace XData.Meta
             return null;
         }
 
-        public bool CanWrite()
+        public bool CanWrite
         {
-            if (Member is PropertyInfo propertyInfo)
+            get
             {
-                return propertyInfo.CanWrite;
+                if (Member is PropertyInfo propertyInfo)
+                {
+                    return propertyInfo.CanWrite;
+                }
+
+                if (Member is FieldInfo)
+                {
+                    return true;
+                }
+
+                return false;
             }
-            if (Member is FieldInfo)
-            {
-                return true;
-            }
-            return false;
         }
 
         #endregion
@@ -141,7 +145,7 @@ namespace XData.Meta
 
         public override int GetHashCode()
         {
-            return this.Member.Name.GetHashCode() ^ this.TableType.MetadataToken ^ Constans.HashCodeXOr;
+            return this.Member.Name.GetHashCode() ^ this.TableType.AssemblyQualifiedName.GetHashCode() ^ Constans.HashCodeXOr;
         }
 
         public override bool Equals(object obj)
@@ -155,6 +159,11 @@ namespace XData.Meta
                 return this.GetHashCode() == obj.GetHashCode();
             }
             return false;
+        }
+
+        public override string ToString()
+        {
+            return $"Member:{Name}, Type:{Type.FullName}";
         }
 
         #endregion

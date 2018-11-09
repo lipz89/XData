@@ -3,6 +3,7 @@
 using Newtonsoft.Json;
 
 using NUnit.Framework;
+using Test.Models;
 
 namespace Test
 {
@@ -12,8 +13,7 @@ namespace Test
         [Test]
         public void Test()
         {
-            var db = Program.NewContext();
-            var qu = db.Query<Menu>().Where(x => x.Url != null);
+            var qu = Context.Query<Menu>().Where(x => x.Url != null);
             var sql = qu.ToSql();
             Console.WriteLine(sql);
             var q1 = qu.Select(x => new { x.Name, x.Code }).Where(x => x.Code.Length > 1);
@@ -31,8 +31,7 @@ namespace Test
         [Test]
         public void Test2()
         {
-            var db = Program.NewContext();
-            var qu = db.Query<Menu>().Where(x => x.Url != null);
+            var qu = Context.Query<Menu>().Where(x => x.Url != null);
             var sql = qu.ToSql();
             Console.WriteLine(sql);
 
@@ -47,8 +46,7 @@ namespace Test
         [Test]
         public void Test3()
         {
-            var db = Program.NewContext();
-            var qu = db.Query<Menu>();
+            var qu = Context.Query<Menu>();
             var sql = qu.ToSql();
             Console.WriteLine(sql);
 
@@ -63,8 +61,7 @@ namespace Test
         [Test]
         public void Test4()
         {
-            var db = Program.NewContext();
-            var qu = db.Query<Menu>().Where(x => x.Url != null);
+            var qu = Context.Query<Menu>().Where(x => x.Url != null);
             var sql = qu.ToSql();
             Console.WriteLine(sql);
 
@@ -79,8 +76,7 @@ namespace Test
         [Test]
         public void Test5()
         {
-            var db = Program.NewContext();
-            var q3 = db.Query<Menu>().Select(x => x.Url).Where(x => x.Contains("o"));
+            var q3 = Context.Query<Menu>().Select(x => x.Url).Where(x => x.Contains("o"));
             var sql3 = q3.ToSql();
             Console.WriteLine(sql3);
 
@@ -91,8 +87,7 @@ namespace Test
         [Test]
         public void Test6()
         {
-            var db = Program.NewContext();
-            var qu = db.Query<Menu>().Where(x => x.Url != null);
+            var qu = Context.Query<Menu>().Where(x => x.Url != null);
             var q1 = qu.Select(x => new { x.Name, x.Code });
             var q22 = q1.Select(x => x.Name + x.Code).OrderBy(x => x);
             var sql22 = q22.ToSql();

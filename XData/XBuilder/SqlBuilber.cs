@@ -49,6 +49,13 @@ namespace XData.XBuilder
         /// <summary>
         /// 构造一个Sql构造器
         /// </summary>
+        protected SqlBuilber()
+        {
+        }
+
+        /// <summary>
+        /// 构造一个Sql构造器
+        /// </summary>
         /// <param name="context">Sql构造器所依附的数据库上下文</param>
         protected SqlBuilber(XContext context)
         {

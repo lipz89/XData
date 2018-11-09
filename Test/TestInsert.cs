@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Test.Models;
 
 namespace Test
 {
@@ -12,15 +13,14 @@ namespace Test
         {
             var users = new List<User>()
             {
-                new User() {ID = Guid.NewGuid(),Code = "Admin",IsAdmin = true,UserName = "Admin",Password = "Admin"},
-                new User() {ID = Guid.NewGuid(),Code = "User1",UserName = "zhangsan",Password = "123456"},
-                new User() {ID = Guid.NewGuid(),Code = "User2",UserName = "lisi",Password = "123456"},
-                new User() {ID = Guid.NewGuid(),Code = "User3",UserName = "wangwu",Password = "123456"},
-                new User() {ID = Guid.NewGuid(),Code = "User4",UserName = "zhaoliu",Password = "123456"},
-                new User() {ID = Guid.NewGuid(),Code = "User5",UserName = "woshishei",Password = "123456"}
+                new User() {Id = Guid.NewGuid(),Code = "Admin",IsAdmin = true,UserName = "Admin",Password = "Admin"},
+                new User() {Id = Guid.NewGuid(),Code = "User1",UserName = "zhangsan",Password = "123456"},
+                new User() {Id = Guid.NewGuid(),Code = "User2",UserName = "lisi",Password = "123456"},
+                new User() {Id = Guid.NewGuid(),Code = "User3",UserName = "wangwu",Password = "123456"},
+                new User() {Id = Guid.NewGuid(),Code = "User4",UserName = "zhaoliu",Password = "123456"},
+                new User() {Id = Guid.NewGuid(),Code = "User5",UserName = "woshishei",Password = "123456"}
             };
-            var ctx = Program.NewContext();
-            var row = ctx.Insert<User>(users);
+            var row = Context.Insert<User>(users);
             Console.WriteLine(row);
         }
         [Test, Order(1)]
@@ -28,15 +28,14 @@ namespace Test
         {
             var roles = new List<Role>()
             {
-                new Role() {ID = Guid.NewGuid(),Code = "Admin",Name = "管理员"},
-                new Role() {ID = Guid.NewGuid(),Code = "Operator",Name = "操作员"},
-                new Role() {ID = Guid.NewGuid(),Code = "Daziyuan",Name = "打字员"},
-                new Role() {ID = Guid.NewGuid(),Code = "Shouyinyuan",Name = "收银员"},
-                new Role() {ID = Guid.NewGuid(),Code = "Lihuoyuan",Name = "理货员"},
-                new Role() {ID = Guid.NewGuid(),Code = "Yunshuyuan",Name = "运输员"}
+                new Role() {Id = Guid.NewGuid(),Code = "Admin",Name = "管理员"},
+                new Role() {Id = Guid.NewGuid(),Code = "Operator",Name = "操作员"},
+                new Role() {Id = Guid.NewGuid(),Code = "Daziyuan",Name = "打字员"},
+                new Role() {Id = Guid.NewGuid(),Code = "Shouyinyuan",Name = "收银员"},
+                new Role() {Id = Guid.NewGuid(),Code = "Lihuoyuan",Name = "理货员"},
+                new Role() {Id = Guid.NewGuid(),Code = "Yunshuyuan",Name = "运输员"}
             };
-            var ctx = Program.NewContext();
-            var row = ctx.Insert<Role>(roles);
+            var row = Context.Insert<Role>(roles);
             Console.WriteLine(row);
         }
         [Test, Order(2)]
@@ -47,60 +46,57 @@ namespace Test
             var idMenus = Guid.NewGuid();
             var menus = new List<Menu>()
             {
-                new Menu() {ID = Guid.NewGuid(),Code = "Home",Name = "首页",IndexID = 0},
-                new Menu() {ID = idUsers,Code = "Users",Name = "用户",IndexID = 1},
-                new Menu() {ID = idRoles,Code = "Roles",Name = "角色",IndexID = 2},
-                new Menu() {ID = idMenus,Code = "Menus",Name = "菜单",IndexID = 3},
-                new Menu() {ID = Guid.NewGuid(),Code = "AddUser",Name = "添加用户",MenuLevel = 1,ParentID = idUsers,IndexID = 0},
-                new Menu() {ID = Guid.NewGuid(),Code = "EditUser",Name = "编辑用户",MenuLevel = 1,ParentID = idUsers,IndexID = 1},
-                new Menu() {ID = Guid.NewGuid(),Code = "DeleteUser",Name = "删除用户",MenuLevel = 1,ParentID = idUsers,IndexID = 2},
-                new Menu() {ID = Guid.NewGuid(),Code = "AddRole",Name = "添加角色",MenuLevel = 1,ParentID = idRoles,IndexID = 0},
-                new Menu() {ID = Guid.NewGuid(),Code = "EditRole",Name = "编辑角色",MenuLevel = 1,ParentID = idRoles,IndexID = 1},
-                new Menu() {ID = Guid.NewGuid(),Code = "DeleteRole",Name = "删除角色",MenuLevel = 1,ParentID = idRoles,IndexID = 2},
-                new Menu() {ID = Guid.NewGuid(),Code = "AddMenu",Name = "添加菜单",MenuLevel = 1,ParentID = idMenus,IndexID = 0},
-                new Menu() {ID = Guid.NewGuid(),Code = "EditMenu",Name = "编辑菜单",MenuLevel = 1,ParentID = idMenus,IndexID = 1},
-                new Menu() {ID = Guid.NewGuid(),Code = "DeleteMenu",Name = "删除菜单",MenuLevel = 1,ParentID = idMenus,IndexID = 2},
-                new Menu() {ID = Guid.NewGuid(),Code = "AddAction",Name = "添加功能",MenuLevel = 1,ParentID = idMenus,IndexID = 3},
-                new Menu() {ID = Guid.NewGuid(),Code = "EditAction",Name = "编辑功能",MenuLevel = 1,ParentID = idMenus,IndexID = 4},
-                new Menu() {ID = Guid.NewGuid(),Code = "DeleteAction",Name = "删除功能",MenuLevel = 1,ParentID = idMenus,IndexID = 5},
+                new Menu() {Id = Guid.NewGuid(),Code = "Home",Name = "首页",IndexId = 0},
+                new Menu() {Id = idUsers,Code = "Users",Name = "用户",IndexId = 1},
+                new Menu() {Id = idRoles,Code = "Roles",Name = "角色",IndexId = 2},
+                new Menu() {Id = idMenus,Code = "Menus",Name = "菜单",IndexId = 3},
+                new Menu() {Id = Guid.NewGuid(),Code = "AddUser",Name = "添加用户",MenuLevel = 1,ParentId = idUsers,IndexId = 0},
+                new Menu() {Id = Guid.NewGuid(),Code = "EditUser",Name = "编辑用户",MenuLevel = 1,ParentId = idUsers,IndexId = 1},
+                new Menu() {Id = Guid.NewGuid(),Code = "DeleteUser",Name = "删除用户",MenuLevel = 1,ParentId = idUsers,IndexId = 2},
+                new Menu() {Id = Guid.NewGuid(),Code = "AddRole",Name = "添加角色",MenuLevel = 1,ParentId = idRoles,IndexId = 0},
+                new Menu() {Id = Guid.NewGuid(),Code = "EditRole",Name = "编辑角色",MenuLevel = 1,ParentId = idRoles,IndexId = 1},
+                new Menu() {Id = Guid.NewGuid(),Code = "DeleteRole",Name = "删除角色",MenuLevel = 1,ParentId = idRoles,IndexId = 2},
+                new Menu() {Id = Guid.NewGuid(),Code = "AddMenu",Name = "添加菜单",MenuLevel = 1,ParentId = idMenus,IndexId = 0},
+                new Menu() {Id = Guid.NewGuid(),Code = "EditMenu",Name = "编辑菜单",MenuLevel = 1,ParentId = idMenus,IndexId = 1},
+                new Menu() {Id = Guid.NewGuid(),Code = "DeleteMenu",Name = "删除菜单",MenuLevel = 1,ParentId = idMenus,IndexId = 2},
+                new Menu() {Id = Guid.NewGuid(),Code = "AddAction",Name = "添加功能",MenuLevel = 1,ParentId = idMenus,IndexId = 3},
+                new Menu() {Id = Guid.NewGuid(),Code = "EditAction",Name = "编辑功能",MenuLevel = 1,ParentId = idMenus,IndexId = 4},
+                new Menu() {Id = Guid.NewGuid(),Code = "DeleteAction",Name = "删除功能",MenuLevel = 1,ParentId = idMenus,IndexId = 5},
             };
 
 
             foreach (var menu in menus)
             {
-                if (menu.ParentID == null)
+                if (menu.ParentId == null)
                 {
                     menu.Url = "/" + menu.Code;
                 }
                 else
                 {
-                    var p = menus.FirstOrDefault(x => x.ID == menu.ParentID.Value);
+                    var p = menus.FirstOrDefault(x => x.Id == menu.ParentId.Value);
                     menu.Url = $"/{p.Code}/{menu.Code}";
                 }
             }
-            var ctx = Program.NewContext();
-            var row = ctx.Insert<Menu>(menus);
+            var row = Context.Insert<Menu>(menus);
             Console.WriteLine(row);
         }
         [Test, Order(3)]
         public void InsertActions()
         {
-            var ctx = Program.NewContext();
-            var menus = ctx.Query<Menu>().Where(x => x.ParentID.HasValue);
+            var menus = Context.Query<Menu>().Where(x => x.ParentId.HasValue);
             Console.WriteLine(menus.Count());
 
             var funcs = menus.Select(x =>
-                new Function() { MenuID = x.ID, Code = x.Code, Name = x.Name }).ToList();
-            funcs.ForEach(x => x.ID = Guid.NewGuid());
+                new Function() { MenuId = x.Id, Code = x.Code, Name = x.Name }).ToList();
+            funcs.ForEach(x => x.Id = Guid.NewGuid());
             //var row = ctx.Insert<Function>(funcs);
             //Console.WriteLine(row);
         }
         [Test, Order(4)]
         public void InsertUserRoles()
         {
-            var ctx = Program.NewContext();
-            var users = ctx.Query<User>().ToList();
-            var roles = ctx.Query<Role>().ToList();
+            var users = Context.Query<User>().ToList();
+            var roles = Context.Query<Role>().ToList();
 
             var userRoles = new List<UserRole>();
             foreach (var user in users)
@@ -109,9 +105,9 @@ namespace Test
                 {
                     var urs = roles.Where(x => x.Code == "Admin").Select(x => new UserRole()
                     {
-                        ID = Guid.NewGuid(),
-                        RoleID = x.ID,
-                        UserID = user.ID
+                        Id = Guid.NewGuid(),
+                        RoleId = x.Id,
+                        UserId = user.Id
                     });
                     userRoles.AddRange(urs);
                 }
@@ -119,23 +115,22 @@ namespace Test
                 {
                     var urs = roles.Where(x => x.Code != "Admin").Select(x => new UserRole()
                     {
-                        ID = Guid.NewGuid(),
-                        RoleID = x.ID,
-                        UserID = user.ID
+                        Id = Guid.NewGuid(),
+                        RoleId = x.Id,
+                        UserId = user.Id
                     });
                     userRoles.AddRange(urs);
                 }
             }
 
-            var row = ctx.Insert<UserRole>(userRoles);
+            var row = Context.Insert<UserRole>(userRoles);
             Console.WriteLine(row);
         }
         [Test, Order(5)]
         public void InsertRoleActions()
         {
-            var ctx = Program.NewContext();
-            var actions = ctx.Query<Function>().ToList();
-            var roles = ctx.Query<Role>().ToList();
+            var actions = Context.Query<Function>().ToList();
+            var roles = Context.Query<Role>().ToList();
 
             var roleActions = new List<RoleFunction>();
             var rd = new Random(DateTime.Now.Millisecond);
@@ -156,12 +151,12 @@ namespace Test
 
                     if (flag)
                     {
-                        var rf = new RoleFunction() { ID = Guid.NewGuid(), FunctionID = function.ID, RoleID = role.ID };
+                        var rf = new RoleFunction() { Id = Guid.NewGuid(), FunctionId = function.Id, RoleId = role.Id };
                         roleActions.Add(rf);
                     }
                 }
             }
-            var row = ctx.Insert<RoleFunction>(roleActions);
+            var row = Context.Insert<RoleFunction>(roleActions);
             Console.WriteLine(row);
         }
     }

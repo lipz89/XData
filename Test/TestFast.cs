@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
 using NUnit.Framework;
 using XData.Common.Fast;
 using XData.Extentions;
@@ -15,7 +12,7 @@ namespace Test
         public void Test()
         {
             var meta = TableMeta.From<Model>();
-            var con1 = meta.Type.GetDefaultCtor();
+            var con1 = meta.Type.GetDefaultConstructor();
             var model1 = con1.FastCreate();
             foreach (var column in meta.Columns)
             {

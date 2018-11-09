@@ -131,6 +131,23 @@ GO
 
 
 
+IF EXISTS (SELECT * FROM sys.objects WHERE name='TestModel' AND type='U')
+	DROP TABLE [dbo].[SomeValues]
+GO
+
+
+CREATE TABLE TestModel
+    (
+      [Name] [VARCHAR](64) ,
+      [Code] [VARCHAR](64) ,
+      [Url] [VARCHAR](64) NULL ,
+      [Memo] [VARCHAR](256) NULL ,
+	  PRIMARY KEY CLUSTERED ( [Name] ASC, [Code] ASC )
+    )
+ON  [PRIMARY]
+
+GO
+
 
 
 

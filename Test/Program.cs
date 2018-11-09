@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using XData;
 
 namespace Test
@@ -16,13 +17,13 @@ namespace Test
             }
         }
 
-        public static string SqlConnectionString;
+        private static readonly string SqlConnectionString;
 
-        public static string SqlProvider;
+        private static readonly string SqlProvider;
 
         public static XContext NewContext()
         {
-            return new XContext(SqlConnectionString, SqlProvider);
+            return new XContext(SqlConnectionString, SqlProvider) { SqlLog = Console.WriteLine };
         }
     }
 }

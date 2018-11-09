@@ -6,7 +6,7 @@ using XData.Common;
 
 namespace XData.Meta
 {
-    [DebuggerDisplay("Member:{Member}, Type:{Type}")]
+    [DebuggerDisplay("Member:{Member.Name}, Type:{Type.FullName}")]
     internal class MInfo
     {
         #region Constructors
@@ -47,6 +47,11 @@ namespace XData.Meta
             }
 
             return false;
+        }
+
+        public override string ToString()
+        {
+            return $"Member:{Member.Name}, Type:{Type.FullName}";
         }
 
         #endregion

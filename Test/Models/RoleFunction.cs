@@ -1,10 +1,10 @@
 ﻿using System;
 
-namespace Test
+namespace Test.Models
 {
     public class RoleFunction : Entity
     {
-        public Guid FunctionID { get; set; }
-        public Guid RoleID { get; set; }
+        public Guid FunctionId { get; set; }
+        public Guid RoleId { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 
 using XData.Common;
+using XData.Common.Fast;
 using XData.Core;
 using XData.Extentions;
 using XData.Meta;
@@ -57,8 +58,7 @@ namespace XData.XBuilder
         /// <param name="context"></param>
         /// <param name="oldEntity"></param>
         /// <param name="newEntity"></param>
-        /// <param name="primaryKey"></param>
-        internal Update(XContext context, T oldEntity, T newEntity, Expression<Func<T, object>> primaryKey = null)
+        internal Update(XContext context, T oldEntity, T newEntity)
             : this(context)
         {
             if (oldEntity == null)
@@ -73,17 +73,12 @@ namespace XData.XBuilder
             var columns = tableMeta.Columns.Where(x => x.CanUpdate).ToList();
             foreach (var column in columns)
             {
-                var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
+                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
                 if (memAccess != null)
                 {
-                    var oldValue = memAccess(oldEntity);
                     var newValue = memAccess(newEntity);
-                    if (!Equals(oldValue, newValue))
-                    {
-                        this.setterString.Add(string.Format("{0}={1}",
-                            EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                        this.parameters.Add(newValue);
-                    }
+                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                    this.parameters.Add(newValue);
                 }
             }
             if (!this.parameters.Any())
@@ -91,32 +86,30 @@ namespace XData.XBuilder
                 throw Error.Exception("必须更新至少一个字段。");
             }
 
-            AddConditionByKey(oldEntity, primaryKey);
+            AddConditionByKey(oldEntity);
         }
 
         /// <summary>
         /// 根据实体构造一个更新命令
         /// </summary>
         /// <param name="context"></param>
-        /// <param name="newEntity"></param>
-        /// <param name="primaryKey"></param>
-        internal Update(XContext context, T newEntity, Expression<Func<T, object>> primaryKey = null)
+        /// <param name="entity"></param>
+        internal Update(XContext context, T entity)
             : this(context)
         {
-            if (newEntity == null)
+            if (entity == null)
             {
-                throw Error.ArgumentNullException(nameof(newEntity));
+                throw Error.ArgumentNullException(nameof(entity));
             }
 
             var columns = tableMeta.Columns.Where(x => x.CanUpdate).ToList();
             foreach (var column in columns)
             {
-                var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
+                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
                 if (memAccess != null)
                 {
-                    var newValue = memAccess(newEntity);
-                    this.setterString.Add(string.Format("{0}={1}",
-                        EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                    var newValue = memAccess(entity);
+                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
                     this.parameters.Add(newValue);
                 }
             }
@@ -125,46 +118,46 @@ namespace XData.XBuilder
                 throw Error.Exception("必须更新至少一个字段。");
             }
 
-            AddConditionByKey(newEntity, primaryKey);
+            AddConditionByKey(entity);
         }
 
-        private void AddConditionByKey(T oldEntity, Expression<Func<T, object>> primaryKey = null)
+        private void AddConditionByKey(T oldEntity)
         {
-            var exp = tableMeta.Key?.Expression as LambdaExpression;
-            if (exp == null && primaryKey != null)
+            var condition = MapperConfig.GetKeysExpression<T>(oldEntity);
+            if (condition != null)
             {
-                MapperConfig.HasKey(primaryKey);
-                exp = primaryKey;
-            }
-            if (exp != null)
-            {
-                var val = exp.Compile().DynamicInvoke(oldEntity);
-                var keyExp = Expression.Constant(val);
-                var mem = exp.Body.ChangeType(keyExp.Type);
-                var newExp = Expression.Equal(mem, keyExp);
-                var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
-                this.Where(lambda);
+                this.Where(condition);
                 this.hasKeyWhere = true;
             }
-            else
-            {
-                throw Error.Exception("没有为类型 " + tableMeta.Type.Name + " 指定主键。");
-            }
+            //if (exp != null)
+            //{
+            //    var val = exp.Compile().DynamicInvoke(oldEntity);
+            //    var keyExp = Expression.Constant(val);
+            //    var mem = exp.Body.ChangeType(keyExp.Type);
+            //    var newExp = Expression.Equal(mem, keyExp);
+            //    var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
+            //    this.Where(lambda);
+            //    this.hasKeyWhere = true;
+            //}
+            //else
+            //{
+            //    throw Error.Exception("没有为类型 " + tableMeta.Type.Name + " 指定主键。");
+            //}
         }
 
         /// <summary>
         /// 根据指定实体构造一个更新指定字段的命令
         /// </summary>
         /// <param name="context"></param>
-        /// <param name="newEntity"></param>
+        /// <param name="entity"></param>
         /// <param name="include">包含或者排除，true包含表示仅更新指定的字段，false排除表示不更新指定的字段</param>
         /// <param name="fields"></param>
-        internal Update(XContext context, T newEntity, bool include, Expression<Func<T, object>>[] fields)
+        internal Update(XContext context, T entity, bool include, Expression<Func<T, object>>[] fields)
             : this(context)
         {
-            if (newEntity == null)
+            if (entity == null)
             {
-                throw Error.ArgumentNullException(nameof(newEntity));
+                throw Error.ArgumentNullException(nameof(entity));
             }
 
             var exceptFields = fields.Select(x => x.GetPropertyName());
@@ -172,13 +165,12 @@ namespace XData.XBuilder
             columns = columns.Where(x => exceptFields.Contains(x.Member.Name) == include).ToList();
             foreach (var column in columns)
             {
-                var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
+                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
                 if (memAccess != null)
                 {
-                    var newValue = memAccess(newEntity);
+                    var newValue = memAccess(entity);
 
-                    this.setterString.Add(string.Format("{0}={1}",
-                        EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
                     this.parameters.Add(newValue);
                 }
             }
@@ -186,23 +178,23 @@ namespace XData.XBuilder
             {
                 throw Error.Exception("必须更新至少一个字段。");
             }
-            AddConditionByKey(newEntity);
+            AddConditionByKey(entity);
         }
 
         /// <summary>
         /// 根据指定实体构造一个更新指定字段的命令
         /// </summary>
         /// <param name="context"></param>
-        /// <param name="newEntity"></param>
+        /// <param name="entity"></param>
         /// <param name="expression"></param>
         /// <param name="include">包含或者排除，true包含表示仅更新指定的字段，false排除表示不更新指定的字段</param>
         /// <param name="fields"></param>
-        internal Update(XContext context, T newEntity, Expression<Func<T, bool>> expression, bool include, Expression<Func<T, object>>[] fields)
+        internal Update(XContext context, T entity, Expression<Func<T, bool>> expression, bool include, Expression<Func<T, object>>[] fields)
             : this(context)
         {
-            if (newEntity == null)
+            if (entity == null)
             {
-                throw Error.ArgumentNullException(nameof(newEntity));
+                throw Error.ArgumentNullException(nameof(entity));
             }
 
             var exceptFields = fields.Select(x => x.GetPropertyName());
@@ -210,13 +202,12 @@ namespace XData.XBuilder
             columns = columns.Where(x => exceptFields.Contains(x.Member.Name) == include).ToList();
             foreach (var column in columns)
             {
-                var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
+                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
                 if (memAccess != null)
                 {
-                    var newValue = memAccess(newEntity);
+                    var newValue = memAccess(entity);
 
-                    this.setterString.Add(string.Format("{0}={1}",
-                        EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
                     this.parameters.Add(newValue);
                 }
             }
@@ -247,13 +238,8 @@ namespace XData.XBuilder
             var columns = tableMeta.Columns.Where(x => x.CanUpdate && fieldValues.Keys.Contains(x.Member.Name)).ToList();
             foreach (var column in columns)
             {
-                var memAccess = column.Member.GetMemberAccess<T>()?.Compile();
-                if (memAccess != null)
-                {
-                    this.setterString.Add(string.Format("{0}={1}",
-                        EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this.parameters.Add(fieldValues[column.Member.Name]);
-                }
+                this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                this.parameters.Add(fieldValues[column.Member.Name]);
             }
             if (!this.parameters.Any())
             {

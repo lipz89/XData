@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using XData.Common;
+using XData.Common.Fast;
 using XData.Core;
 using XData.Core.ExpressionVisitors;
 using XData.Extentions;
@@ -84,29 +85,14 @@ namespace XData.XBuilder
         {
             this.tableMeta = TableMeta.From<T>();
             this.tableName = this.tableMeta.TableName;
-        }
-        /// <summary>
-        /// 构造一个查询命令
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="tableName"></param>
-        ///// <param name="useCache"></param>
-        internal Query(XContext context, string tableName/*, bool useCache = true*/) : this(context)
-        {
             if (tableMeta.IsSimpleType())
             {
                 throw Error.Exception("查询的实体类型不正确。");
             }
-            if (!tableName.IsNullOrWhiteSpace())
-            {
-                this.tableName = tableName;
-            }
             this.namedType = new NamedType(this.tableMeta.Type, this.tableName);
             this.typeVisitor.Add(this.namedType);
-            //typeNames.Add(typeof(T), _tableName);
-
-            //this.InitFieldsPart();
         }
+
         #endregion
 
         #region Where
@@ -214,10 +200,10 @@ namespace XData.XBuilder
 
         private Expression<Func<T1, TKey>> GetKeySelector<T1, TKey>()
         {
-            var key = MapperConfig.GetKeyMeta<T1>();
+            var key = MapperConfig.GetKeyMetas<T1>().SingleOrDefault();
             if (key != null && key.Member != null && typeof(TKey).IsAssignableFrom(key.Member.GetMemberType()))
             {
-                return key.Member.GetMemberProperty<T1, TKey>();
+                return ExpressionHelper.CreateGetterExpression<T1, TKey>(key.Member);// key.Member.GetMemberProperty<T1, TKey>();
             }
 
             return null;
@@ -423,6 +409,12 @@ namespace XData.XBuilder
             var enumer = Context.SqlQuery<T>(this.ToSql(), this.DbParameters);
             return FillInclude(enumer.FirstOrDefault());
         }
+
+        public T FirstOrDefault(Expression<Func<T, bool>> expression)
+        {
+            return this.Where(expression).FirstOrDefault();
+        }
+
         #endregion
 
         #region Page
@@ -605,7 +597,7 @@ namespace XData.XBuilder
 
         protected virtual Query<T> Copy()
         {
-            var query = new Query<T>(this.Context, this.tableName);
+            var query = new Query<T>(this.Context);
             query.order = this.order?.Copy(query);
             query.where = this.where?.Copy(query);
             query.fieldsPart = this.fieldsPart;

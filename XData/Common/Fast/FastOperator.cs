@@ -19,7 +19,7 @@ namespace XData.Common.Fast
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
-            var constructorInfo = type.GetDefaultCtor();
+            var constructorInfo = type.GetDefaultConstructor();
             if (constructorInfo == null)
                 throw new ArgumentException("类型没有公开的默认构造函数。");
 

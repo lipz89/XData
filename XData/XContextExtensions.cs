@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 using System.Linq.Expressions;
 using XData.Common;
 using XData.Core;
@@ -104,11 +105,10 @@ namespace XData
         /// 构造一个查询命令
         /// </summary>
         /// <typeparam name="T">查询结果实体类型</typeparam>
-        /// <param name="tableName">表名称，如果表名和类型<typeparamref name="T"/>名称一致或者在<see cref="T:XData.Meta.MapperConfig"/>中配置了表名，本参数可以省略</param>
         /// <returns></returns>
-        public IQuery<T> Query<T>(string tableName = null)
+        public IQuery<T> Query<T>()
         {
-            return new Query<T>(this, tableName);
+            return new Query<T>(this);
         }
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace XData
             var query = this.Query<T>();
             if (condition != null)
             {
-                query = query.Where(condition);
+                return query.FirstOrDefault(condition);
             }
             return query.FirstOrDefault();
         }
@@ -131,31 +131,56 @@ namespace XData
         /// 根据主键值获取实体对象
         /// </summary>
         /// <typeparam name="T">查询结果实体类型</typeparam>
-        /// <param name="key">主键值</param>
-        /// <param name="primaryKey">主键列表达式</param>
+        /// <param name="keys">主键值</param>
         /// <returns>返回主键等于主键值的实体对象，没有返回null</returns>
-        public T GetByKey<T>(object key, Expression<Func<T, object>> primaryKey = null)
+        public T GetByKey<T>(params object[] keys)
         {
-            if (key == null)
+            if (keys.IsNullOrEmpty())
             {
                 return default(T);
             }
-            var keyMeta = MapperConfig.GetKeyMeta<T>();
-            var exp = keyMeta?.Expression as LambdaExpression;
-            if (exp == null && primaryKey != null)
+
+            var keyCondition = MapperConfig.GetKeysExpression<T>(keys);
+            if (keyCondition != null)
             {
-                MapperConfig.HasKey(primaryKey);
-                exp = primaryKey;
+                return GetFirstOrDefault(keyCondition);
             }
-            if (exp == null)
-            {
-                throw Error.Exception("没有为模型" + typeof(T).FullName + "指定主键。");
-            }
-            var keyExp = Expression.Constant(key);
-            var mem = exp.Body.ChangeType(keyExp.Type);
-            var condition = Expression.Equal(keyExp, mem);
-            var lambda = Expression.Lambda<Func<T, bool>>(condition, exp.Parameters);
-            return GetFirstOrDefault(lambda);
+
+            return default(T);
+            //var keyMeta = MapperConfig.GetKeyMetas<T>();
+            //if (keyMeta == null)
+            //{
+            //    throw Error.Exception("没有为模型" + typeof(T).FullName + "指定主键。");
+            //}
+
+            //if (keys.Length != keyMeta.Length)
+            //{
+            //    return default(T);
+            //}
+
+            //LambdaExpression body = null;
+            //ParameterExpression parameter = null;
+            //for (var i = 0; i < keyMeta.Length; i++)
+            //{
+            //    var meta = keyMeta[i];
+            //    if (meta.Expression is LambdaExpression exp)
+            //    {
+            //        parameter = exp.Parameters.FirstOrDefault();
+            //        var keyExp = Expression.Constant(keys[i]);
+            //        var mem = exp.Body.ChangeType(keyExp.Type);
+            //        var condition = Expression.Equal(keyExp, mem);
+            //        var innerLambda = Expression.Lambda(condition, parameter);
+
+            //        body = body.AndAlso(innerLambda);
+            //    }
+            //}
+
+            //if (body == null)
+            //{
+            //    return default(T);
+            //}
+            //var lambda = Expression.Lambda<Func<T, bool>>(body.Body, parameter);
+            //return GetFirstOrDefault(lambda);
         }
 
         #endregion
@@ -345,6 +370,16 @@ namespace XData
         {
             return new InsertList<T>(this, entities).Execute();
         }
+        /// <summary>
+        /// 根据实体和指定的字段插入多条记录
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="entities">要插入的实体</param>
+        /// <returns>成功返回true，否则返回false</returns>
+        public int Insert<T>(params T[] entities)
+        {
+            return new InsertList<T>(this, entities).Execute();
+        }
 
         /// <summary>
         /// 根据实体和指定的字段插入多条记录
@@ -392,11 +427,11 @@ namespace XData
         /// 根据主键值删除一条记录
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
-        /// <param name="primaryValue">主键值</param>
+        /// <param name="keys">主键值</param>
         /// <returns>成功返回true，否则返回false</returns>
-        public bool Delete<T>(object primaryValue)
+        public bool DeleteByKey<T>(params object[] keys)
         {
-            return new Delete<T>(this, primaryValue).Execute() > 0;
+            return new Delete<T>(this, keys).Execute() > 0;
         }
 
         /// <summary>
@@ -404,11 +439,10 @@ namespace XData
         /// </summary>
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="entity">要删除的实体，根据该实体的主键删除</param>
-        /// <param name="primaryKey">主键表达式</param>
         /// <returns>成功返回true，否则返回false</returns>
-        public bool Delete<T>(T entity, Expression<Func<T, object>> primaryKey = null)
+        public bool Delete<T>(T entity)
         {
-            return new Delete<T>(this, entity, primaryKey).Execute() > 0;
+            return new Delete<T>(this, entity).Execute() > 0;
         }
 
         /// <summary>
@@ -417,7 +451,7 @@ namespace XData
         /// <typeparam name="T">实体类型</typeparam>
         /// <param name="expression">条件表达式，如果为空表示删除所有</param>
         /// <returns>返回删除的行数</returns>
-        public int Delete<T>(Expression<Func<T, bool>> expression)
+        public int DeleteBy<T>(Expression<Func<T, bool>> expression)
         {
             return new Delete<T>(this, expression).Execute();
         }

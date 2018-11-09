@@ -95,7 +95,7 @@ namespace XData
         /// <param name="connectionString">数据库连接字符串</param>
         /// <param name="providerName">数据库连接提供程序</param>
         /// <param name="inTranscation"></param>
-        public XContext(string connectionString, string providerName, IsolationLevel inTranscation = IsolationLevel.ReadCommitted)
+        public XContext(string connectionString, string providerName, IsolationLevel inTranscation)
             : this(connectionString, providerName)
         {
             var conn = this.CreateConnection();
@@ -379,7 +379,7 @@ namespace XData
         #endregion
 
         #region ExecuteScalar
-        
+
         /// <summary>
         /// 执行查询，并返回查询所返回的结果集中第一行的第一列。所有其他的列和行将被忽略。
         /// </summary>
@@ -437,7 +437,7 @@ namespace XData
         #endregion
 
         #region GetDataSet
-        
+
         /// <summary>
         /// 从数据源创建数据缓存
         /// </summary>
@@ -499,7 +499,7 @@ namespace XData
         #endregion
 
         #region GetDataTable
-        
+
         /// <summary>
         /// 从数据源创建数据缓存
         /// </summary>

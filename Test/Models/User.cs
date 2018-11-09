@@ -1,4 +1,4 @@
-﻿namespace Test
+﻿namespace Test.Models
 {
     public class User : Entity
     {

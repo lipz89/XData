@@ -12,8 +12,7 @@ namespace XData.Common
     {
         private static readonly Cache<Type, Dictionary<string, object>> types = new Cache<Type, Dictionary<string, object>>();
         private static readonly Cache<Type, Func<Dictionary<string, object>, object>> objectMappers = new Cache<Type, Func<Dictionary<string, object>, object>>();
-
-
+        
         public static object FromString(Type enumType, string value)
         {
             Dictionary<string, object> map = types.Get(enumType, () =>
@@ -87,7 +86,7 @@ namespace XData.Common
         {
             return objectMappers.Get(tableMeta.Type, () =>
             {
-                var constructor = tableMeta.Type.GetDefaultCtor()
+                var constructor = tableMeta.Type.GetDefaultConstructor()
                                 ?? tableMeta.Type.GetConstructors().FirstOrDefault();
                 if (constructor == null)
                 {
@@ -137,7 +136,7 @@ namespace XData.Common
 
                     var instance = constructor.FastCreate(args.ToArray());
 
-                    foreach (var col in columns.Where(x => x.CanWrite()))
+                    foreach (var col in columns.Where(x => x.CanWrite))
                     {
                         var key = col.ColumnName;
                         if (param.ContainsKey(key))

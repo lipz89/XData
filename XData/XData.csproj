@@ -82,10 +82,10 @@
     <Compile Include="Meta\ColumnMeta.cs" />
     <Compile Include="Meta\DbTypes.cs" />
     <Compile Include="Meta\MapperConfig.cs" />
-    <Compile Include="Meta\MInfo.cs" />
     <Compile Include="Meta\TableMeta.cs" />
     <Compile Include="Core\ExpressionVisitors\ParameterReplaceVisitor.cs" />
     <Compile Include="XBuilder\ComplexQuery.cs" />
+    <Compile Include="XBuilder\IExecutable.cs" />
     <Compile Include="XBuilder\Include\IInclude.cs" />
     <Compile Include="XBuilder\Include\IncludeCollectionInfo.cs" />
     <Compile Include="XBuilder\Include\IncludeInfo.cs" />

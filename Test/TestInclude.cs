@@ -1,40 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using NUnit.Framework;
-
-using XData;
+using Test.Models;
 using XData.Meta;
 
 namespace Test
 {
-    public class TestInclude
+    public class TestInclude : BaseTest
     {
         [Test, Order(0)]
         public void TestInsert()
         {
-            var db = Program.NewContext();
-
-            var r1 = db.Delete<Parent>(x => new int[] { 5, 6 }.Contains(x.ID));
-            var r2 = db.Delete<Child>(x => x.ParentID.HasValue && new int[] { 5, 6 }.Contains(x.ParentID.Value));
+            var r1 = Context.DeleteBy<Parent>(x => new int[] { 5, 6 }.Contains(x.Id));
+            var r2 = Context.DeleteBy<Child>(x => x.ParentId.HasValue && new int[] { 5, 6 }.Contains(x.ParentId.Value));
 
             var parents = new List<Parent>
             {
-                new Parent() {ID = 5, Name = "测试1", Code = "Test1"},
-                new Parent() {ID = 6, Name = "测试2", Code = "Test2"},
+                new Parent() {Id = 5, Name = "测试1", Code = "Test1"},
+                new Parent() {Id = 6, Name = "测试2", Code = "Test2"},
             };
 
             var children = new List<Child>
             {
-                new Child() {ParentID = 5, Code = "T111", Name = "T111",ID = 101},
-                new Child() {ParentID = 5, Code = "T222", Name = "T222",ID = 102},
-                new Child() {ParentID = 6, Code = "T333", Name = "T333",ID = 103},
-                new Child() {ParentID = 6, Code = "T444", Name = "T444",ID = 104},
+                new Child() {ParentId = 5, Code = "T111", Name = "T111",Id = 101},
+                new Child() {ParentId = 5, Code = "T222", Name = "T222",Id = 102},
+                new Child() {ParentId = 6, Code = "T333", Name = "T333",Id = 103},
+                new Child() {ParentId = 6, Code = "T444", Name = "T444",Id = 104},
             };
 
-            var row1 = db.Insert<Parent>(parents);
-            var row2 = db.Insert<Child>(children);
+            var row1 = Context.Insert<Parent>(parents);
+            var row2 = Context.Insert<Child>(children);
 
             Assert.AreEqual(row1, 2);
             Assert.AreEqual(row2, 4);
@@ -42,16 +38,14 @@ namespace Test
         [Test, Order(1)]
         public void Test()
         {
-            var db = Program.NewContext();
-
-            var parents = db.Query<Parent>().ToList();
+            var parents = Context.Query<Parent>().ToList();
 
             foreach (var parent in parents)
             {
                 Console.WriteLine(parent);
             }
 
-            var children = db.Query<Child>().ToList();
+            var children = Context.Query<Child>().ToList();
             foreach (var child in children)
             {
                 Console.WriteLine(child);
@@ -61,12 +55,10 @@ namespace Test
         [Test, Order(2)]
         public void TestIncludeChildren()
         {
-            var db = Program.NewContext();
-
-            var query = db.Query<Parent>()
+            var query = Context.Query<Parent>()
                 .Include(x => x.Children,
-                x => x.ID,
-                x => x.ParentID,
+                x => x.Id,
+                x => x.ParentId,
                 (p, c) =>
                 {
                     p.Children = c.ToList();
@@ -89,12 +81,11 @@ namespace Test
         [Test, Order(3)]
         public void TestIncludeChildrenWithoutKey()
         {
-            var db = Program.NewContext();
-            MapperConfig.HasKey<Parent>(x => x.ID);
+            MapperConfig.HasKey<Parent>(x => x.Id);
 
-            var query = db.Query<Parent>()
+            var query = Context.Query<Parent>()
                 .Include(x => x.Children,
-                x => x.ParentID,
+                x => x.ParentId,
                 (p, c) =>
                 {
                     p.Children = c.ToList();
@@ -118,12 +109,10 @@ namespace Test
         [Test, Order(4)]
         public void TestIncludeParent()
         {
-            var db = Program.NewContext();
-
-            var query = db.Query<Child>()
+            var query = Context.Query<Child>()
                 .Include(x => x.Parent,
-                x => x.ParentID,
-                x => x.ID,
+                x => x.ParentId,
+                x => x.Id,
                 (c, p) =>
                          {
                              c.Parent = p;
@@ -148,12 +137,11 @@ namespace Test
         [Test, Order(5)]
         public void TestIncludeParentWithoutKey()
         {
-            var db = Program.NewContext();
-            MapperConfig.HasKey<Parent>(x => x.ID);
+            MapperConfig.HasKey<Parent>(x => x.Id);
 
-            var query = db.Query<Child>()
+            var query = Context.Query<Child>()
                 .Include(x => x.Parent,
-                x => x.ParentID,
+                x => x.ParentId,
                 (c, p) =>
                 {
                     c.Parent = p;

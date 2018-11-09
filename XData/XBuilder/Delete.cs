@@ -18,7 +18,6 @@ namespace XData.XBuilder
     {
         #region Fields
         private Where<T> where;
-        private readonly bool hasKeyWhere;
         #endregion
 
         #region Properties
@@ -60,31 +59,22 @@ namespace XData.XBuilder
                 this.Where(expression);
             }
         }
-        internal Delete(XContext context, object primaryValue)
+        internal Delete(XContext context, params object[] keys)
             : this(context)
         {
-            if (primaryValue == null)
+            if (keys.IsNullOrEmpty())
             {
-                throw Error.ArgumentNullException(nameof(primaryValue));
+                throw Error.ArgumentNullException(nameof(keys));
             }
 
-            var exp = tableMeta.Key?.Expression as LambdaExpression;
-            if (exp != null)
+            var condition = MapperConfig.GetKeysExpression<T>(keys);
+            if (condition != null)
             {
-                var keyExp = Expression.Constant(primaryValue);
-                var mem = exp.Body.ChangeType(keyExp.Type);
-                var newExp = Expression.Equal(mem, keyExp);
-                var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
-                this.Where(lambda);
-                hasKeyWhere = true;
-            }
-            else
-            {
-                throw Error.Exception("没有为类型 " + tableMeta.Type.Name + " 指定主键。");
+                this.Where(condition);
             }
         }
 
-        internal Delete(XContext context, T entity, Expression<Func<T, object>> primaryKey)
+        internal Delete(XContext context, T entity)
             : this(context)
         {
             if (entity == null)
@@ -92,25 +82,10 @@ namespace XData.XBuilder
                 throw Error.ArgumentNullException(nameof(entity));
             }
 
-            var exp = tableMeta.Key?.Expression as LambdaExpression;
-            if (exp == null && primaryKey != null)
+            var condition = MapperConfig.GetKeysExpression<T>(entity);
+            if (condition != null)
             {
-                MapperConfig.HasKey(primaryKey);
-                exp = primaryKey;
-            }
-            if (exp != null)
-            {
-                var val = exp.Compile().DynamicInvoke(entity);
-                var keyExp = Expression.Constant(val);
-                var mem = exp.Body.ChangeType(keyExp.Type);
-                var newExp = Expression.Equal(mem, keyExp);
-                var lambda = Expression.Lambda<Func<T, bool>>(newExp, exp.Parameters);
-                this.Where(lambda);
-                hasKeyWhere = true;
-            }
-            else
-            {
-                throw Error.Exception("没有为类型 " + tableMeta.Type.Name + " 指定主键。");
+                this.Where(condition);
             }
         }
         #endregion
@@ -128,11 +103,8 @@ namespace XData.XBuilder
             {
                 throw Error.ArgumentNullException(nameof(expression));
             }
-            if (hasKeyWhere)
-            {
-                throw Error.Exception("已经指定了主键列为Where条件。");
-            }
-            this.where = this.where ?? new Where<T>(Context, this);
+
+            this.where = new Where<T>(Context, this);
             this.where.Add(expression);
         }
 

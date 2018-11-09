@@ -8,12 +8,12 @@ using XData.Extentions;
 
 namespace XData.Meta
 {
-    [DebuggerDisplay("TableName:{TableName}, Type:{Type.FullName}")]
+    //[DebuggerDisplay("TableName:{TableName}, Type:{Type.FullName}")]
     internal class TableMeta
     {
         #region Constructors
 
-        public TableMeta(Type type)
+        private TableMeta(Type type)
         {
             this.Type = type;
             this.TableName = MapperConfig.GetTableName(type);
@@ -27,9 +27,9 @@ namespace XData.Meta
 
         public string TableName { get; internal set; }
 
-        public ColumnMeta Key
+        public ColumnMeta[] Key
         {
-            get { return MapperConfig.GetKeyMeta(this.Type); }
+            get { return MapperConfig.GetKeyMetas(this.Type); }
         }
 
         public IReadOnlyList<ColumnMeta> Columns { get; internal set; }
@@ -63,7 +63,12 @@ namespace XData.Meta
 
         public override int GetHashCode()
         {
-            return this.Type.MetadataToken ^ Constans.HashCodeXOr;
+            return this.Type.AssemblyQualifiedName.GetHashCode() ^ Constans.HashCodeXOr;
+        }
+
+        public override string ToString()
+        {
+            return $"TableName:{TableName}, Type:{Type.FullName}";
         }
 
         #endregion
@@ -92,26 +97,16 @@ namespace XData.Meta
 
                     foreach (var info in meta.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                     {
-                        var mi = new MInfo(info, meta.Type);
                         if (DbTypes.ContainsType(info.PropertyType) && !MapperConfig.IsIgnore(info, meta.Type))
                         {
-                            var columnName = MapperConfig.GetColumnName(info, meta.Type);
-                            columns.Add(new ColumnMeta(mi)
-                            {
-                                ColumnName = columnName
-                            });
+                            columns.Add(new ColumnMeta(info, meta.Type));
                         }
                     }
                     foreach (var info in meta.Type.GetFields(BindingFlags.Instance | BindingFlags.Public))
                     {
-                        var mi = new MInfo(info, meta.Type);
                         if (DbTypes.ContainsType(info.FieldType) && !MapperConfig.IsIgnore(info, meta.Type))
                         {
-                            var columnName = MapperConfig.GetColumnName(info, meta.Type);
-                            columns.Add(new ColumnMeta(mi)
-                            {
-                                ColumnName = columnName
-                            });
+                            columns.Add(new ColumnMeta(info, meta.Type));
                         }
                     }
                     meta.Columns = columns.AsReadOnly();

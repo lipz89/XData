@@ -31,14 +31,14 @@ namespace XData.XBuilder
         /// <summary>
         /// 多字段升序
         /// </summary>
-        /// <param name="expression">排序字段表达式数组</param>
+        /// <param name="expression">排序字段表达式</param>
         /// <returns>当前查询</returns>
         IQuery<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression);
 
         /// <summary>
         /// 多字段降序
         /// </summary>
-        /// <param name="expression">排序字段表达式数组</param>
+        /// <param name="expression">排序字段表达式</param>
         /// <returns>当前查询</returns>
         IQuery<T> OrderByDescending<TProperty>(Expression<Func<T, TProperty>> expression);
 
@@ -114,6 +114,13 @@ namespace XData.XBuilder
         T FirstOrDefault();
 
         /// <summary>
+        /// 将查询结果中的第一条记录返回
+        /// <param name="expression">条件表达式</param>
+        /// </summary>
+        /// <returns>返回当前查询的第一条结果</returns>
+        T FirstOrDefault(Expression<Func<T, bool>> expression);
+
+        /// <summary>
         /// 提取查询的分页数据
         /// </summary>
         /// <param name="pageIndex">页索引</param>
@@ -144,17 +151,5 @@ namespace XData.XBuilder
         IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<T, TKey>> tkey, Action<T, IEnumerable<TRelaction>> action);
 
         IQuery<T> Include<TRelaction, TKey>(Expression<Func<T, ICollection<TRelaction>>> property, Expression<Func<TRelaction, TKey>> relectionKey, Action<T, IEnumerable<TRelaction>> action);
-    }
-
-    /// <summary>
-    /// 可执行的Sql接口
-    /// </summary>
-    public interface IExecutable
-    {
-        /// <summary>
-        /// 执行Sql命令
-        /// </summary>
-        /// <returns>返回受影响的行数</returns>
-        int Execute();
     }
 }

@@ -16,11 +16,12 @@ namespace XData.Meta
     {
         #region 静态字段
 
-        private static readonly Dictionary<Type, string> TableNames = new Dictionary<Type, string>();
-        private static readonly Dictionary<Type, ColumnMeta> TableKeys = new Dictionary<Type, ColumnMeta>();
-        private static readonly Dictionary<MInfo, string> ColumnNames = new Dictionary<MInfo, string>();
-        private static readonly List<MInfo> IgnoreColumns = new List<MInfo>();
-        private static readonly Dictionary<Type, MInfo> TableIdentities = new Dictionary<Type, MInfo>();
+        private static readonly Dictionary<Type, string> CachedTableNames = new Dictionary<Type, string>();
+        private static readonly Dictionary<Type, ColumnMeta[]> CachedTableKeys = new Dictionary<Type, ColumnMeta[]>();
+        private static readonly Dictionary<ColumnMeta, string> CachedColumnNames = new Dictionary<ColumnMeta, string>();
+        private static readonly List<ColumnMeta> CachedIgnoreColumns = new List<ColumnMeta>();
+        private static readonly Dictionary<Type, ColumnMeta> CachedTableIdentities = new Dictionary<Type, ColumnMeta>();
+        private static readonly Cache<Type, string> CachedCreateSqls = new Cache<Type, string>();
 
         #endregion
 
@@ -42,14 +43,13 @@ namespace XData.Meta
             {
                 throw Error.ArgumentNullException(nameof(tableName));
             }
-            if (TableNames.ContainsKey(type))
+            if (CachedTableNames.ContainsKey(type))
             {
-                TableNames[type] = tableName;
+                throw Error.Exception($"已经设置了类型 {type.FullName} 对应的表名称为 {CachedTableNames[type]}，不能重复设置。");
+                //CachedTableNames[type] = tableName;
             }
-            else
-            {
-                TableNames.Add(type, tableName);
-            }
+
+            CachedTableNames.Add(type, tableName);
         }
 
         /// <summary>
@@ -60,119 +60,110 @@ namespace XData.Meta
         /// <param name="columnName">模型属性对应的字段名称</param>
         public static void HasColumnName<T>(Expression<Func<T, object>> property, string columnName)
         {
-            if (property == null)
+            var member = property?.GetMember();
+            if (member?.IsPropertyOrField() != true)
             {
-                throw Error.ArgumentNullException(nameof(property));
+                throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
             }
             if (columnName.IsNullOrWhiteSpace())
             {
                 throw Error.ArgumentNullException(nameof(columnName));
             }
 
-            var mi = property.GetMember();
-            if (mi == null)
+            var m = new ColumnMeta(member, typeof(T));
+            //if (CachedIgnoreColumns.Contains(m))
+            //{
+            //    throw Error.Exception($"属性 {m} 已经被忽略，不能设置列名。");
+            //}
+            if (CachedColumnNames.ContainsKey(m))
             {
-                throw Error.ArgumentException("指定表达式不是成员访问类型。", nameof(property));
+                throw Error.Exception($"已经设置了字段 {m} 对应的列名称为 {CachedColumnNames[m]}，不能重复设置。");
+                //CachedColumnNames[m] = columnName;
             }
-            if (mi.MemberType == MemberTypes.Field || mi.MemberType == MemberTypes.Property)
-            {
-                var m = new MInfo(mi, typeof(T));
-                if (IgnoreColumns.Contains(m))
-                {
-                    throw Error.ArgumentException("属性已经被忽略。", nameof(property));
-                }
-                if (ColumnNames.ContainsKey(m))
-                {
-                    ColumnNames[m] = columnName;
-                }
-                else
-                {
-                    ColumnNames.Add(m, columnName);
-                }
-            }
-            else
-            {
-                throw Error.ArgumentException("指定表达式不是属性或字段。", nameof(property));
-            }
+
+            CachedColumnNames.Add(m, columnName);
         }
 
         /// <summary>
-        /// 配置模型的主键列名
+        /// 配置模型的唯一主键列名
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
-        /// <param name="property">模型主键属性的表达式</param>
-        /// <param name="columnName">模型主键属性对应的字段名称</param>
-        public static void HasKey<T>(Expression<Func<T, object>> property, string columnName = null)
+        /// <param name="properties">模型主键属性的表达式</param>
+        public static void HasKey<T>(params Expression<Func<T, object>>[] properties)
         {
-            if (property == null)
+            if (properties.IsNullOrEmpty())
             {
-                throw Error.ArgumentNullException(nameof(columnName));
+                throw Error.ArgumentNullException(nameof(properties));
             }
-            var member = property.GetMember();
-            if (member == null)
+
+            var members = properties.Select(x => x.GetMember()).Distinct().ToArray();
+
+            if (members.Any(x => !x.IsPropertyOrField()))
             {
-                throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
+                throw Error.ArgumentException("参数中包含不是属性或字段的表达式。", nameof(properties));
             }
-            var m = new MInfo(member, typeof(T));
-            if (IgnoreColumns.Contains(m))
-            {
-                throw Error.ArgumentException("属性已经被忽略。", nameof(property));
-            }
-            var key = new ColumnMeta(m)
-            {
-                ColumnName = columnName ?? property.GetPropertyName(),
-                Expression = property
-            };
+
             var type = typeof(T);
-            if (TableKeys.ContainsKey(type))
+            if (CachedTableKeys.ContainsKey(type))
             {
-                TableKeys[type] = key;
+                var keys = string.Join(",", GetKey<T>());
+                throw Error.Exception($"已经设置了类型 {type.FullName} 对应的主键为 {keys}，不能重复设置。");
+                //CachedTableKeys[type] = key;
             }
-            else
+
+            var metas = new ColumnMeta[members.Length];
+            for (var index = 0; index < members.Length; index++)
             {
-                TableKeys.Add(type, key);
+                var member = members[index];
+                var m = new ColumnMeta(member, type);
+                if (CachedIgnoreColumns.Contains(m))
+                {
+                    throw Error.Exception($"属性 {m} 已经被忽略，不能设置为主键。");
+                }
+
+                metas[index] = m;
             }
+
+            CachedTableKeys.Add(type, metas);
         }
 
         /// <summary>
-        /// 配置模型的自增列名
+        /// 配置模型的自增主键
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
         /// <param name="property">模型自增列属性的表达式</param>
-        /// <param name="columnName">自增列对应的字段名称</param>
+        /// <param name="columnName">自增主键列对应的字段名称</param>
         public static void HasIdentity<T>(Expression<Func<T, object>> property, string columnName = null)
         {
-            var member = property.GetMember();
-            if (member == null)
+            var member = property?.GetMember();
+            if (member?.IsPropertyOrField() != true)
             {
                 throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
             }
-            var m = new MInfo(member, typeof(T));
-            if (IgnoreColumns.Contains(m))
-            {
-                throw Error.ArgumentException("属性已经被忽略。", nameof(property));
-            }
+
+            var m = new ColumnMeta(member, typeof(T));
             var type = typeof(T);
-            if (!TableIdentities.ContainsKey(type))
+            if (CachedTableIdentities.ContainsKey(type))
             {
-                TableIdentities.Add(type, m);
-            }
-            if (!columnName.IsNullOrWhiteSpace())
+                throw Error.Exception($"已经设置了类型 {type.FullName} 对应的自增列为 {CachedTableIdentities[type].ColumnName}，不能重复设置。");
+            };
+
+            CachedTableIdentities.Add(type, m);
+            if (!string.IsNullOrWhiteSpace(columnName))
             {
                 HasColumnName(property, columnName);
             }
         }
-
         /// <summary>
-        /// 配置同时为自增列的主键
+        /// 配置模型的自增主键
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
-        /// <param name="property">模型主键属性的表达式</param>
-        /// <param name="columnName">模型主键对应的字段名称</param>
-        public static void HasKeyAndIdentity<T>(Expression<Func<T, object>> property, string columnName = null)
+        /// <param name="property">模型自增列属性的表达式</param>
+        /// <param name="columnName">自增主键列对应的字段名称</param>
+        public static void HasIdentityKey<T>(Expression<Func<T, object>> property, string columnName = null)
         {
-            HasKey(property, columnName);
-            HasIdentity(property);
+            HasIdentity(property, columnName);
+            HasKey(property);
         }
 
         /// <summary>
@@ -182,34 +173,25 @@ namespace XData.Meta
         /// <param name="property">要忽略的模型属性的表达式</param>
         public static void IgnoreColumn<T>(Expression<Func<T, object>> property)
         {
-            if (property == null)
+            var member = property?.GetMember();
+            if (member?.IsPropertyOrField() != true)
             {
-                throw Error.ArgumentNullException(nameof(property));
+                throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
             }
-            var mi = property.GetMember();
-            if (mi == null)
+
+            var keys = GetKeyMetas<T>();
+            var m = new ColumnMeta(member, typeof(T));
+            if (keys != null && keys.Any(x => x.Member == member))
             {
-                throw Error.ArgumentException("指定表达式不是成员访问类型。", nameof(property));
+                throw Error.Exception($"属性 {m} 已经配置为主键，不能忽略。");
             }
-            if (mi.MemberType == MemberTypes.Field || mi.MemberType == MemberTypes.Property)
+            //if (CachedColumnNames.ContainsKey(m))
+            //{
+            //    throw Error.ArgumentException("属性已经配置字段名:" + CachedColumnNames[m] + "。", nameof(property));
+            //}
+            if (!CachedIgnoreColumns.Contains(m))
             {
-                var m = new MInfo(mi, typeof(T));
-                if (TableKeys.Values.Any(x => x.Member == mi))
-                {
-                    throw Error.ArgumentException("属性已经配置为主键，不能忽略。", nameof(property));
-                }
-                if (ColumnNames.ContainsKey(m))
-                {
-                    throw Error.ArgumentException("属性已经配置字段名:" + ColumnNames[m] + "。", nameof(property));
-                }
-                if (!IgnoreColumns.Contains(m))
-                {
-                    IgnoreColumns.Add(m);
-                }
-            }
-            else
-            {
-                throw Error.ArgumentException("指定表达式不是属性或字段。", nameof(property));
+                CachedIgnoreColumns.Add(m);
             }
         }
 
@@ -218,12 +200,19 @@ namespace XData.Meta
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
         /// <param name="properties">要忽略的模型属性的表达式数组</param>
-        public static void IgnoreColumn<T>(params Expression<Func<T, object>>[] properties)
+        public static void IgnoreColumns<T>(params Expression<Func<T, object>>[] properties)
             where T : class
         {
+            if (properties.IsNullOrEmpty())
+            {
+                throw Error.ArgumentNullException(nameof(properties));
+            }
             foreach (var property in properties)
             {
-                IgnoreColumn(property);
+                if (property != null)
+                {
+                    IgnoreColumn(property);
+                }
             }
         }
 
@@ -248,9 +237,9 @@ namespace XData.Meta
         /// <returns>返回模型对应的表名</returns>
         public static string GetTableName(Type type)
         {
-            if (TableNames.ContainsKey(type))
+            if (CachedTableNames.ContainsKey(type))
             {
-                return TableNames[type];
+                return CachedTableNames[type];
             }
             return type.Name;
         }
@@ -264,36 +253,40 @@ namespace XData.Meta
         /// <returns>成员对应的列名称</returns>
         public static string GetColumnName<T, TProperty>(Expression<Func<T, TProperty>> property)
         {
-            if (property == null)
+            var member = property?.GetMember();
+            if (member?.IsPropertyOrField() != true)
             {
-                throw Error.ArgumentNullException(nameof(property));
+                throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
             }
-            var mi = property.GetMember();
-            if (mi == null)
-            {
-                throw Error.ArgumentException("指定表达式不是成员访问类型。", nameof(property));
-            }
-            return GetColumnName(mi, typeof(T));
+            return GetColumnName(member, typeof(T));
         }
 
         /// <summary>
         /// 返回模型对应的字段名
         /// </summary>
-        /// <param name="memberInfo">模型的成员信息</param>
+        /// <param name="member">模型的成员信息</param>
         /// <param name="type">模型类型</param>
         /// <returns>成员对应的列名称</returns>
-        public static string GetColumnName(MemberInfo memberInfo, Type type)
+        public static string GetColumnName(MemberInfo member, Type type)
         {
-            if (memberInfo == null)
+            if (member?.IsPropertyOrField() != true)
             {
-                throw Error.ArgumentNullException(nameof(memberInfo));
+                throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(member));
             }
-            var m = new MInfo(memberInfo, type);
-            if (ColumnNames.ContainsKey(m))
+            var m = new ColumnMeta(member, type);
+            return GetColumnName(m);
+        }
+        internal static string GetColumnName(ColumnMeta columnMeta)
+        {
+            if (columnMeta == null)
             {
-                return ColumnNames[m];
+                throw Error.ArgumentNullException(nameof(columnMeta));
             }
-            return memberInfo.Name;
+            if (CachedColumnNames.ContainsKey(columnMeta))
+            {
+                return CachedColumnNames[columnMeta];
+            }
+            return columnMeta.Name;
         }
 
         /// <summary>
@@ -301,7 +294,7 @@ namespace XData.Meta
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
         /// <returns>返回模型的主键列名称</returns>
-        public static string GetKey<T>()
+        public static string[] GetKey<T>()
         {
             return GetKey(typeof(T));
         }
@@ -311,11 +304,11 @@ namespace XData.Meta
         /// </summary>
         /// <param name="type">模型类型</param>
         /// <returns>返回模型的主键列名称</returns>
-        public static string GetKey(Type type)
+        public static string[] GetKey(Type type)
         {
-            if (TableKeys.ContainsKey(type))
+            if (CachedTableKeys.ContainsKey(type))
             {
-                return TableKeys[type].ColumnName;
+                return CachedTableKeys[type].Select(x => x.ColumnName).ToArray();
             }
             return null;
         }
@@ -325,9 +318,9 @@ namespace XData.Meta
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
         /// <returns>返回模型的主键列信息</returns>
-        internal static ColumnMeta GetKeyMeta<T>()
+        internal static ColumnMeta[] GetKeyMetas<T>()
         {
-            return GetKeyMeta(typeof(T));
+            return GetKeyMetas(typeof(T));
         }
 
         /// <summary>
@@ -335,11 +328,89 @@ namespace XData.Meta
         /// </summary>
         /// <param name="type">模型类型</param>
         /// <returns>返回模型的主键列信息</returns>
-        internal static ColumnMeta GetKeyMeta(Type type)
+        internal static ColumnMeta[] GetKeyMetas(Type type)
         {
-            if (TableKeys.ContainsKey(type))
+            if (CachedTableKeys.ContainsKey(type))
             {
-                return TableKeys[type];
+                return CachedTableKeys[type];
+            }
+            return null;
+        }
+        /// <summary>
+        /// 返回模型对应的主键字段名
+        /// </summary>
+        /// <returns>返回模型的主键列信息</returns>
+        internal static Expression<Func<T, bool>> GetKeysExpression<T>(params object[] keys)
+        {
+            var keyMeta = MapperConfig.GetKeyMetas<T>();
+            if (keyMeta == null)
+            {
+                throw Error.Exception("没有为模型" + typeof(T).FullName + "指定主键。");
+            }
+
+            if (keys.Length != keyMeta.Length)
+            {
+                return null;
+                //throw Error.Exception("主键的列数目和给定的键值数目不相等。");
+            }
+
+            LambdaExpression body = null;
+            ParameterExpression parameter = null;
+            for (var i = 0; i < keyMeta.Length; i++)
+            {
+                var meta = keyMeta[i];
+                if (meta.Expression is LambdaExpression exp)
+                {
+                    parameter = exp.Parameters.FirstOrDefault();
+                    var keyExp = Expression.Constant(keys[i]);
+                    var mem = exp.Body.ChangeType(keyExp.Type);
+                    var condition = Expression.Equal(keyExp, mem);
+                    var innerLambda = Expression.Lambda(condition, parameter);
+
+                    body = body.AndAlso(innerLambda);
+                }
+            }
+
+            if (body != null)
+            {
+                return Expression.Lambda<Func<T, bool>>(body.Body, parameter);
+            }
+            return null;
+        }
+        /// <summary>
+        /// 返回模型对应的主键字段名
+        /// </summary>
+        /// <returns>返回模型的主键列信息</returns>
+        internal static Expression<Func<T, bool>> GetKeysExpression<T>(T entity)
+        {
+            var keyMeta = MapperConfig.GetKeyMetas<T>();
+            if (keyMeta == null)
+            {
+                throw Error.Exception("没有为模型" + typeof(T).FullName + "指定主键。");
+            }
+
+            LambdaExpression body = null;
+            ParameterExpression parameter = null;
+            for (var i = 0; i < keyMeta.Length; i++)
+            {
+                var meta = keyMeta[i];
+                if (meta.Expression is LambdaExpression exp)
+                {
+                    parameter = exp.Parameters.FirstOrDefault();
+                    var key = exp.Compile().DynamicInvoke(entity);
+                    var keyExp = Expression.Constant(key);
+                    //var keyExp = Expression.MakeMemberAccess(constvar, meta.Member);
+                    var mem = exp.Body.ChangeType(keyExp.Type);
+                    var condition = Expression.Equal(keyExp, mem);
+                    var innerLambda = Expression.Lambda(condition, parameter);
+
+                    body = body.AndAlso(innerLambda);
+                }
+            }
+
+            if (body != null)
+            {
+                return Expression.Lambda<Func<T, bool>>(body.Body, parameter);
             }
             return null;
         }
@@ -349,7 +420,7 @@ namespace XData.Meta
         /// </summary>
         /// <typeparam name="T">模型类型</typeparam>
         /// <returns>返回模型的自增列信息</returns>
-        internal static MInfo GetIdentity<T>()
+        internal static ColumnMeta GetIdentity<T>()
         {
             return GetIdentity(typeof(T));
         }
@@ -359,11 +430,11 @@ namespace XData.Meta
         /// </summary>
         /// <param name="type">模型类型</param>
         /// <returns>返回模型的自增列信息</returns>
-        internal static MInfo GetIdentity(Type type)
+        internal static ColumnMeta GetIdentity(Type type)
         {
-            if (TableIdentities.ContainsKey(type))
+            if (CachedTableIdentities.ContainsKey(type))
             {
-                return TableIdentities[type];
+                return CachedTableIdentities[type];
             }
             return null;
         }
@@ -377,16 +448,12 @@ namespace XData.Meta
         /// <returns>返回该字段是否忽略映射</returns>
         public static bool IsIgnore<T, TProperty>(Expression<Func<T, TProperty>> property)
         {
-            if (property == null)
+            var member = property?.GetMember();
+            if (member?.IsPropertyOrField() != true)
             {
-                throw Error.ArgumentNullException(nameof(property));
+                throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
             }
-            var mi = property.GetMember();
-            if (mi == null)
-            {
-                throw Error.ArgumentException("指定表达式不是成员访问类型。", nameof(property));
-            }
-            return IsIgnore(mi, typeof(T));
+            return IsIgnore(member, typeof(T));
         }
 
         /// <summary>
@@ -401,8 +468,8 @@ namespace XData.Meta
             {
                 throw Error.ArgumentNullException(nameof(memberInfo));
             }
-            var m = new MInfo(memberInfo, type);
-            return IgnoreColumns.Contains(m);
+            var m = new ColumnMeta(memberInfo, type);
+            return CachedIgnoreColumns.Contains(m);
         }
 
         #endregion

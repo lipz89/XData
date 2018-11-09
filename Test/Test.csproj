@@ -62,6 +62,7 @@
     <Compile Include="Models\Entity.cs" />
     <Compile Include="Models\Function.cs" />
     <Compile Include="Models\Menu.cs" />
+    <Compile Include="Models\ModelMultiKeys.cs" />
     <Compile Include="Models\Parent.cs" />
     <Compile Include="Models\Role.cs" />
     <Compile Include="Models\RoleFunction.cs" />
@@ -75,9 +76,10 @@
     <Compile Include="TestFast.cs" />
     <Compile Include="TestInclude.cs" />
     <Compile Include="TestInsert.cs" />
+    <Compile Include="TestMultiKeys.cs" />
     <Compile Include="TestQuery.cs" />
     <Compile Include="TestSelect.cs" />
-    <Compile Include="TestUpdate.cs" />
+    <Compile Include="TestUpdateDelete.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

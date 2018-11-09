@@ -140,12 +140,12 @@ namespace XData.Extentions
 
         #region 默认构造函数
 
-        public static bool HasDefaultCtor(this Type type)
+        public static bool HasDefaultConstructor(this Type type)
         {
             return type.GetConstructor(Type.EmptyTypes) != null;
         }
 
-        public static ConstructorInfo GetDefaultCtor(this Type type)
+        public static ConstructorInfo GetDefaultConstructor(this Type type)
         {
             return type.GetConstructor(Type.EmptyTypes);
         }
@@ -162,48 +162,6 @@ namespace XData.Extentions
             var exp = Expression.Default(type);
             var lambda = Expression.Lambda(exp);
             return lambda.Compile().DynamicInvoke();
-        }
-
-        public static Expression<Func<T, object>> GetMemberAccess<T>(this MemberInfo memberInfo)
-        {
-            var type = typeof(T);
-            if (memberInfo.DeclaringType == null || !memberInfo.DeclaringType.IsAssignableFrom(type))
-            {
-                throw Error.ArgumentException("类型" + type.Name + "不包含指定的成员。", nameof(memberInfo));
-            }
-            if (memberInfo.MemberType != MemberTypes.Field && memberInfo.MemberType != MemberTypes.Property)
-            {
-                throw Error.ArgumentException("指定的成员不是字段或属性。", nameof(memberInfo));
-            }
-            var instance = Expression.Parameter(typeof(T));
-            var member = Expression.MakeMemberAccess(instance, memberInfo);
-            return Expression.Lambda<Func<T, object>>(Expression.Convert(member, typeof(object)), instance);
-        }
-        public static Expression<Func<T, TKey>> GetMemberProperty<T, TKey>(this MemberInfo memberInfo)
-        {
-            var type = typeof(T);
-            if (memberInfo.DeclaringType == null || !memberInfo.DeclaringType.IsAssignableFrom(type))
-            {
-                throw Error.ArgumentException("类型" + type.Name + "不包含指定的成员。", nameof(memberInfo));
-            }
-            if (memberInfo.MemberType != MemberTypes.Field && memberInfo.MemberType != MemberTypes.Property)
-            {
-                throw Error.ArgumentException("指定的成员不是字段或属性。", nameof(memberInfo));
-            }
-            var instance = Expression.Parameter(typeof(T));
-            Expression member = Expression.MakeMemberAccess(instance, memberInfo);
-            var keyType = typeof(TKey);
-            var memType = memberInfo.GetMemberType();
-            if (keyType.NonNullableType() == memType.NonNullableType())
-            {
-                if (memType != keyType)
-                {
-                    member = Expression.Convert(member, typeof(TKey));
-                }
-                return Expression.Lambda<Func<T, TKey>>(member, instance);
-            }
-
-            throw Error.InvalidCastException("类型不能转换");
         }
 
         public static Type GetMemberType(this MemberInfo value)
@@ -223,6 +181,21 @@ namespace XData.Extentions
                 return methodInfo.ReturnType;
             }
             throw Error.NotSupportedException("未实现");
+        }
+
+        public static bool IsPropertyOrField(this MemberInfo value)
+        {
+            if (value is FieldInfo)
+            {
+                return true;
+            }
+
+            if (value is PropertyInfo)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

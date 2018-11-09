@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace Test
+namespace Test.Models
 {
     public class Entity
     {
-        public Guid ID { get; set; }
+        public Guid Id { get; set; }
     }
 }
