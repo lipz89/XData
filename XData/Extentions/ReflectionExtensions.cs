@@ -176,11 +176,7 @@ namespace XData.Extentions
                 return propertyInfo.PropertyType;
             }
 
-            if (value is MethodInfo methodInfo)
-            {
-                return methodInfo.ReturnType;
-            }
-            throw Error.NotSupportedException("Œ¥ µœ÷");
+            return null;
         }
 
         public static bool IsPropertyOrField(this MemberInfo value)
@@ -191,6 +187,34 @@ namespace XData.Extentions
             }
 
             if (value is PropertyInfo)
+            {
+                return true;
+            }
+
+            return false;
+        }
+        public static bool CanWrite(this MemberInfo value)
+        {
+            if (value is PropertyInfo propertyInfo)
+            {
+                return propertyInfo.CanWrite;
+            }
+
+            if (value is FieldInfo)
+            {
+                return true;
+            }
+
+            return false;
+        }
+        public static bool CanRead(this MemberInfo value)
+        {
+            if (value is PropertyInfo propertyInfo)
+            {
+                return propertyInfo.CanRead;
+            }
+
+            if (value is FieldInfo)
             {
                 return true;
             }

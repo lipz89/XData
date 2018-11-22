@@ -5,29 +5,26 @@ using XData.Extentions;
 
 namespace XData.Common.Fast
 {
-    internal class ExpressionHelper
+    internal static class ExpressionHelper
     {
         public static Func<object[], T> CreateCreatorHandler<T>(ConstructorInfo constructorInfo)
         {
+            var p = Expression.Parameter(typeof(object[]));
             ParameterInfo[] paramsTypes = constructorInfo.GetParameters();
-            var pars = new ParameterExpression[paramsTypes.Length];
+            var pars = new Expression[paramsTypes.Length];
             for (int i = 0; i < paramsTypes.Length; i++)
             {
-                pars[i] = Expression.Parameter(paramsTypes[i].ParameterType);
+                Expression item = Expression.ArrayIndex(p, Expression.Constant(i));
+                if (paramsTypes[i].ParameterType != item.Type)
+                {
+                    item = Expression.Convert(item, paramsTypes[i].ParameterType);
+                }
+                pars[i] = item;
             }
 
             var body = Expression.New(constructorInfo, pars);
-            var lambda = Expression.Lambda(body, pars);
-            var func = lambda.Compile();
-
-            //var p = Expression.Parameter(typeof(object[]));
-            //var funcexp = Expression.Constant(func);
-            //var mi = typeof(Delegate).GetMethod("DynamicInvoke");
-            //var invoke = Expression.Call(funcexp, mi, p);
-            //var rtn = Expression.Convert(invoke, typeof(T));
-            //var lambda2 = Expression.Lambda<Func<object[], T>>(rtn, p);
-            //return lambda2.Compile();
-            return objects => (T)func.DynamicInvoke(objects);
+            var lambda = Expression.Lambda<Func<object[], T>>(body, p);
+            return lambda.Compile();
         }
 
         public static Expression<Func<T, TValue>> CreateGetterExpression<T, TValue>(MemberInfo memberInfo)

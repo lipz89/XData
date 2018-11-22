@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
 
 using XData.Common;
-using XData.Extentions;
 
 namespace XData.Meta
 {
-    //[DebuggerDisplay("TableName:{TableName}, Type:{Type.FullName}")]
     internal class TableMeta
     {
         #region Constructors
@@ -25,15 +22,9 @@ namespace XData.Meta
 
         public Type Type { get; }
 
-        public string TableName { get; internal set; }
+        public string TableName { get; }
 
-        public ColumnMeta[] Key
-        {
-            get { return MapperConfig.GetKeyMetas(this.Type); }
-        }
-
-        public IReadOnlyList<ColumnMeta> Columns { get; internal set; }
-
+        public IReadOnlyList<ColumnMeta> Columns { get; private set; }
 
         #endregion
 
@@ -77,19 +68,15 @@ namespace XData.Meta
 
         private static readonly Cache<Type, TableMeta> cache = new Cache<Type, TableMeta>();
 
-        public static TableMeta From<T>(string tableName = null)
+        public static TableMeta From<T>()
         {
-            return From(typeof(T), tableName);
+            return From(typeof(T));
         }
 
-        public static TableMeta From(Type type, string tableName = null)
+        public static TableMeta From(Type type)
         {
             return cache.Get(type, () =>
             {
-                if (!tableName.IsNullOrWhiteSpace())
-                {
-                    MapperConfig.HasTableName(type, tableName);
-                }
                 var meta = new TableMeta(type);
                 if (!meta.IsSimpleType())
                 {

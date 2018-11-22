@@ -39,7 +39,7 @@ namespace XData.XBuilder.Include
                 var lbd = Expression.Lambda<Func<TRelaction, bool>>(call, p);
                 return lbd;
             }
-            else if (m.Type.IsNullable())
+            if (m.Type.IsNullable() && m.Type.NonNullableType() == keyType)
             {
                 var hasValue = Expression.Property(m, "HasValue");
                 var value = Expression.Property(m, "Value");
@@ -48,7 +48,7 @@ namespace XData.XBuilder.Include
                 var lbd = Expression.Lambda<Func<TRelaction, bool>>(and, p);
                 return lbd;
             }
-            else if (keyType.IsNullable())
+            if (keyType.IsNullable() && m.Type == keyType.NonNullableType())
             {
                 var nullable = Expression.Convert(m, keyType);
                 var call = Expression.Call(lt, mthd, nullable);
@@ -69,7 +69,8 @@ namespace XData.XBuilder.Include
                 var lbd = Expression.Lambda<Func<TRelaction, bool>>(call, p);
                 return lbd;
             }
-            else if (m.Type.IsNullable())
+
+            if (m.Type.IsNullable() && m.Type.NonNullableType() == keyType)
             {
                 var hasValue = Expression.Property(m, "HasValue");
                 var value = Expression.Property(m, "Value");
@@ -78,7 +79,8 @@ namespace XData.XBuilder.Include
                 var lbd = Expression.Lambda<Func<TRelaction, bool>>(and, p);
                 return lbd;
             }
-            else if (keyType.IsNullable())
+
+            if (keyType.IsNullable() && m.Type == keyType.NonNullableType())
             {
                 var nullable = Expression.Convert(m, keyType);
                 var call = Expression.Equal(lt, nullable);

@@ -86,13 +86,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\XData\XData.csproj">
-      <Project>{b5c12322-eed7-4163-b6b4-8021978f0b83}</Project>
-      <Name>XData</Name>
-    </ProjectReference>
+    <Content Include="Database.sql" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Database.sql" />
+    <ProjectReference Include="..\XData\XData.csproj">
+      <Project>{e4306fd2-dddc-4047-9361-22c0adcde36a}</Project>
+      <Name>XData</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

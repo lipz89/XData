@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using NUnit.Framework;
 using XData.Common.Fast;
 using XData.Extentions;
@@ -40,6 +41,32 @@ namespace Test
             staticField.FastSetValue(null, "StaticField");
             var f = staticField.FastGetValue(null);
             Console.WriteLine(f);
+        }
+
+        [Test]
+        public void Test2()
+        {
+            var conts = typeof(Model).GetConstructors();
+
+            foreach (var cont in conts)
+            {
+                var creator = ExpressionHelper.CreateCreatorHandler<Model>(cont);
+                var pars = cont.GetParameters();
+                object[] ps = new object[pars.Length];
+                for (int i = 0; i < pars.Length; i++)
+                {
+                    if (pars[0].ParameterType == typeof(string))
+                    {
+                        ps[0] = "123";
+                    }
+                    else 
+                    {
+                        ps[0] = 123;
+                    }
+                }
+
+                var m = creator(ps);
+            }
         }
     }
 

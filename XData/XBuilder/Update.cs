@@ -73,13 +73,8 @@ namespace XData.XBuilder
             var columns = tableMeta.Columns.Where(x => x.CanUpdate).ToList();
             foreach (var column in columns)
             {
-                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
-                if (memAccess != null)
-                {
-                    var newValue = memAccess(newEntity);
-                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this.parameters.Add(newValue);
-                }
+                this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                this.parameters.Add(column.GetValue(newEntity));
             }
             if (!this.parameters.Any())
             {
@@ -105,13 +100,8 @@ namespace XData.XBuilder
             var columns = tableMeta.Columns.Where(x => x.CanUpdate).ToList();
             foreach (var column in columns)
             {
-                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
-                if (memAccess != null)
-                {
-                    var newValue = memAccess(entity);
-                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this.parameters.Add(newValue);
-                }
+                this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                this.parameters.Add(column.GetValue(entity));
             }
             if (!this.parameters.Any())
             {
@@ -165,14 +155,8 @@ namespace XData.XBuilder
             columns = columns.Where(x => exceptFields.Contains(x.Member.Name) == include).ToList();
             foreach (var column in columns)
             {
-                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
-                if (memAccess != null)
-                {
-                    var newValue = memAccess(entity);
-
-                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this.parameters.Add(newValue);
-                }
+                this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                this.parameters.Add(column.GetValue(entity));
             }
             if (!this.parameters.Any())
             {
@@ -202,14 +186,8 @@ namespace XData.XBuilder
             columns = columns.Where(x => exceptFields.Contains(x.Member.Name) == include).ToList();
             foreach (var column in columns)
             {
-                var memAccess = ExpressionHelper.CreateGetterExpression<T, dynamic>(column.Member)?.Compile();
-                if (memAccess != null)
-                {
-                    var newValue = memAccess(entity);
-
-                    this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
-                    this.parameters.Add(newValue);
-                }
+                this.setterString.Add(string.Format("{0}={1}", EscapeSqlIdentifier(column.ColumnName), GetParameterIndex()));
+                this.parameters.Add(column.GetValue(entity));
             }
             if (!this.parameters.Any())
             {

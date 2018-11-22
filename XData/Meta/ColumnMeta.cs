@@ -5,6 +5,7 @@ using System.Reflection;
 
 using XData.Common;
 using XData.Common.Fast;
+using XData.Extentions;
 
 namespace XData.Meta
 {
@@ -44,15 +45,7 @@ namespace XData.Meta
         {
             get
             {
-                if (Member is PropertyInfo propertyInfo)
-                {
-                    return propertyInfo.PropertyType;
-                }
-                if (Member is FieldInfo fieldInfo)
-                {
-                    return fieldInfo.FieldType;
-                }
-                return null;
+                return Member.GetMemberType();
             }
         }
 
@@ -121,23 +114,7 @@ namespace XData.Meta
             return null;
         }
 
-        public bool CanWrite
-        {
-            get
-            {
-                if (Member is PropertyInfo propertyInfo)
-                {
-                    return propertyInfo.CanWrite;
-                }
-
-                if (Member is FieldInfo)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-        }
+        public bool CanWrite { get { return Member.CanWrite(); } }
 
         #endregion
 
@@ -163,7 +140,7 @@ namespace XData.Meta
 
         public override string ToString()
         {
-            return $"Member:{Name}, Type:{Type.FullName}";
+            return $"Member:{Name}, TableType:{TableType.FullName}";
         }
 
         #endregion

@@ -21,7 +21,6 @@ namespace XData.Meta
         private static readonly Dictionary<ColumnMeta, string> CachedColumnNames = new Dictionary<ColumnMeta, string>();
         private static readonly List<ColumnMeta> CachedIgnoreColumns = new List<ColumnMeta>();
         private static readonly Dictionary<Type, ColumnMeta> CachedTableIdentities = new Dictionary<Type, ColumnMeta>();
-        private static readonly Cache<Type, string> CachedCreateSqls = new Cache<Type, string>();
 
         #endregion
 
@@ -43,13 +42,15 @@ namespace XData.Meta
             {
                 throw Error.ArgumentNullException(nameof(tableName));
             }
-            if (CachedTableNames.ContainsKey(type))
-            {
-                throw Error.Exception($"已经设置了类型 {type.FullName} 对应的表名称为 {CachedTableNames[type]}，不能重复设置。");
-                //CachedTableNames[type] = tableName;
-            }
 
-            CachedTableNames.Add(type, tableName);
+            lock (CachedTableNames)
+            {
+                if (CachedTableNames.ContainsKey(type))
+                {
+                    throw Error.Exception($"已经设置了类型 {type.FullName} 对应的表名称为 {CachedTableNames[type]}，不能重复设置。");
+                }
+                CachedTableNames.Add(type, tableName);
+            }
         }
 
         /// <summary>
@@ -75,13 +76,14 @@ namespace XData.Meta
             //{
             //    throw Error.Exception($"属性 {m} 已经被忽略，不能设置列名。");
             //}
-            if (CachedColumnNames.ContainsKey(m))
+            lock (CachedColumnNames)
             {
-                throw Error.Exception($"已经设置了字段 {m} 对应的列名称为 {CachedColumnNames[m]}，不能重复设置。");
-                //CachedColumnNames[m] = columnName;
+                if (CachedColumnNames.ContainsKey(m))
+                {
+                    throw Error.Exception($"已经设置了字段 {m} 对应的列名称为 {CachedColumnNames[m]}，不能重复设置。");
+                }
+                CachedColumnNames.Add(m, columnName);
             }
-
-            CachedColumnNames.Add(m, columnName);
         }
 
         /// <summary>
@@ -103,28 +105,31 @@ namespace XData.Meta
                 throw Error.ArgumentException("参数中包含不是属性或字段的表达式。", nameof(properties));
             }
 
-            var type = typeof(T);
-            if (CachedTableKeys.ContainsKey(type))
+            lock (CachedTableKeys)
             {
-                var keys = string.Join(",", GetKey<T>());
-                throw Error.Exception($"已经设置了类型 {type.FullName} 对应的主键为 {keys}，不能重复设置。");
-                //CachedTableKeys[type] = key;
-            }
-
-            var metas = new ColumnMeta[members.Length];
-            for (var index = 0; index < members.Length; index++)
-            {
-                var member = members[index];
-                var m = new ColumnMeta(member, type);
-                if (CachedIgnoreColumns.Contains(m))
+                var type = typeof(T);
+                if (CachedTableKeys.ContainsKey(type))
                 {
-                    throw Error.Exception($"属性 {m} 已经被忽略，不能设置为主键。");
+                    var keys = string.Join(",", GetKey<T>());
+                    throw Error.Exception($"已经设置了类型 {type.FullName} 对应的主键为 {keys}，不能重复设置。");
+                    //CachedTableKeys[type] = key;
                 }
 
-                metas[index] = m;
-            }
+                var metas = new ColumnMeta[members.Length];
+                for (var index = 0; index < members.Length; index++)
+                {
+                    var member = members[index];
+                    var m = new ColumnMeta(member, type);
+                    if (CachedIgnoreColumns.Contains(m))
+                    {
+                        throw Error.Exception($"属性 {m} 已经被忽略，不能设置为主键。");
+                    }
 
-            CachedTableKeys.Add(type, metas);
+                    metas[index] = m;
+                }
+
+                CachedTableKeys.Add(type, metas);
+            }
         }
 
         /// <summary>
@@ -141,17 +146,21 @@ namespace XData.Meta
                 throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
             }
 
-            var m = new ColumnMeta(member, typeof(T));
-            var type = typeof(T);
-            if (CachedTableIdentities.ContainsKey(type))
+            lock (CachedTableIdentities)
             {
-                throw Error.Exception($"已经设置了类型 {type.FullName} 对应的自增列为 {CachedTableIdentities[type].ColumnName}，不能重复设置。");
-            };
+                var m = new ColumnMeta(member, typeof(T));
+                var type = typeof(T);
+                if (CachedTableIdentities.ContainsKey(type))
+                {
+                    throw Error.Exception(
+                        $"已经设置了类型 {type.FullName} 对应的自增列为 {CachedTableIdentities[type].ColumnName}，不能重复设置。");
+                }
 
-            CachedTableIdentities.Add(type, m);
-            if (!string.IsNullOrWhiteSpace(columnName))
-            {
-                HasColumnName(property, columnName);
+                CachedTableIdentities.Add(type, m);
+                if (!string.IsNullOrWhiteSpace(columnName))
+                {
+                    HasColumnName(property, columnName);
+                }
             }
         }
         /// <summary>
@@ -179,19 +188,23 @@ namespace XData.Meta
                 throw Error.ArgumentException("指定的表达式不是属性或字段。", nameof(property));
             }
 
-            var keys = GetKeyMetas<T>();
-            var m = new ColumnMeta(member, typeof(T));
-            if (keys != null && keys.Any(x => x.Member == member))
+            lock (CachedIgnoreColumns)
             {
-                throw Error.Exception($"属性 {m} 已经配置为主键，不能忽略。");
-            }
-            //if (CachedColumnNames.ContainsKey(m))
-            //{
-            //    throw Error.ArgumentException("属性已经配置字段名:" + CachedColumnNames[m] + "。", nameof(property));
-            //}
-            if (!CachedIgnoreColumns.Contains(m))
-            {
-                CachedIgnoreColumns.Add(m);
+                var keys = GetKeyMetas<T>();
+                var m = new ColumnMeta(member, typeof(T));
+                if (keys != null && keys.Any(x => x.Member == member))
+                {
+                    throw Error.Exception($"属性 {m} 已经配置为主键，不能忽略。");
+                }
+
+                //if (CachedColumnNames.ContainsKey(m))
+                //{
+                //    throw Error.ArgumentException("属性已经配置字段名:" + CachedColumnNames[m] + "。", nameof(property));
+                //}
+                if (!CachedIgnoreColumns.Contains(m))
+                {
+                    CachedIgnoreColumns.Add(m);
+                }
             }
         }
 
@@ -237,11 +250,15 @@ namespace XData.Meta
         /// <returns>返回模型对应的表名</returns>
         public static string GetTableName(Type type)
         {
-            if (CachedTableNames.ContainsKey(type))
+            lock (CachedTableNames)
             {
-                return CachedTableNames[type];
+                if (CachedTableNames.ContainsKey(type))
+                {
+                    return CachedTableNames[type];
+                }
+
+                return type.Name;
             }
-            return type.Name;
         }
 
         /// <summary>
@@ -282,11 +299,16 @@ namespace XData.Meta
             {
                 throw Error.ArgumentNullException(nameof(columnMeta));
             }
-            if (CachedColumnNames.ContainsKey(columnMeta))
+
+            lock (CachedColumnNames)
             {
-                return CachedColumnNames[columnMeta];
+                if (CachedColumnNames.ContainsKey(columnMeta))
+                {
+                    return CachedColumnNames[columnMeta];
+                }
+
+                return columnMeta.Name;
             }
-            return columnMeta.Name;
         }
 
         /// <summary>
@@ -306,11 +328,15 @@ namespace XData.Meta
         /// <returns>返回模型的主键列名称</returns>
         public static string[] GetKey(Type type)
         {
-            if (CachedTableKeys.ContainsKey(type))
+            lock (CachedTableKeys)
             {
-                return CachedTableKeys[type].Select(x => x.ColumnName).ToArray();
+                if (CachedTableKeys.ContainsKey(type))
+                {
+                    return CachedTableKeys[type].Select(x => x.ColumnName).ToArray();
+                }
+
+                return null;
             }
-            return null;
         }
 
         /// <summary>
@@ -330,11 +356,15 @@ namespace XData.Meta
         /// <returns>返回模型的主键列信息</returns>
         internal static ColumnMeta[] GetKeyMetas(Type type)
         {
-            if (CachedTableKeys.ContainsKey(type))
+            lock (CachedTableKeys)
             {
-                return CachedTableKeys[type];
+                if (CachedTableKeys.ContainsKey(type))
+                {
+                    return CachedTableKeys[type];
+                }
+
+                return null;
             }
-            return null;
         }
         /// <summary>
         /// 返回模型对应的主键字段名
@@ -432,11 +462,15 @@ namespace XData.Meta
         /// <returns>返回模型的自增列信息</returns>
         internal static ColumnMeta GetIdentity(Type type)
         {
-            if (CachedTableIdentities.ContainsKey(type))
+            lock (CachedTableIdentities)
             {
-                return CachedTableIdentities[type];
+                if (CachedTableIdentities.ContainsKey(type))
+                {
+                    return CachedTableIdentities[type];
+                }
+
+                return null;
             }
-            return null;
         }
 
         /// <summary>
@@ -468,8 +502,12 @@ namespace XData.Meta
             {
                 throw Error.ArgumentNullException(nameof(memberInfo));
             }
-            var m = new ColumnMeta(memberInfo, type);
-            return CachedIgnoreColumns.Contains(m);
+
+            lock (CachedIgnoreColumns)
+            {
+                var m = new ColumnMeta(memberInfo, type);
+                return CachedIgnoreColumns.Contains(m);
+            }
         }
 
         #endregion
