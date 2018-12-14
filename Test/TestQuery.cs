@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using Newtonsoft.Json;
 
 using NUnit.Framework;
@@ -86,6 +88,17 @@ namespace Test
         {
             string pattern = "%abc_d%";
             var query = Context.Query<SomeValues>().Where(x => x.ValueVarchar.SqlLike(pattern)).ToList();
+            Console.WriteLine(query.Count);
+        }
+        [Test]
+        public void TestLike2()
+        {
+            var list = new List<SomeValues>()
+            {
+                new SomeValues {ValueVarchar = "aaaabcddddd"}
+            };
+            string pattern = "%abc_d%";
+            var query = list.Where(x => x.ValueVarchar.SqlLike(pattern)).ToList();
             Console.WriteLine(query.Count);
         }
 
@@ -177,6 +190,76 @@ namespace Test
 
             var q3 = Context.GetByKey<SomeValues>(40);
             Console.WriteLine(JsonConvert.SerializeObject(q3));
+        }
+
+
+        [Test]
+        public void TestLambda()
+        {
+            //委托：方法作为参数传递
+            var r1 = Result(3, 4, Sum);
+            //使用匿名方法传递委托
+            var r4 = Result(3, 4, delegate (int x, int y) { return x + y; });
+            //语句lambda 传递委托
+            var r2 = Result(3, 4, (a, b) => { return a - b; });
+            //表达式lambda 传递委托
+            var r3 = Result(3, 4, (a, b) => a * b);
+            Console.ReadLine();
+        }
+        private static int Result(int a, int b, Func<int, int, int> @delegate)
+        {
+            return @delegate(a, b);
+        }
+        private static int Sum(int a, int b)
+        {
+            return a + b;
+        }
+
+
+        [Test]
+        public void TestExpression()
+        {
+            Func<int, int> func = x => x + 1;               //Code 
+            Expression<Func<int, int>> exp = x => x + 1;    //Data
+
+            //创建表达式树：Expression<Func<int, int>> exp = x => x + 1;
+            ParameterExpression param = Expression.Parameter(typeof(int), "x");
+            ConstantExpression value = Expression.Constant(1, typeof(int));
+            BinaryExpression body = Expression.Add(param, value);
+            Expression<Func<int, int>> lambdatree = Expression.Lambda<Func<int, int>>(body, param);
+
+            Func<int, int> func2 = exp.Compile();
+            Func<int, int> func3 = lambdatree.Compile();
+        }
+
+        [Test]
+        public void TestExpression2()
+        {
+            Expression<Func<int, int>> exp = x => x + 1;    //Data
+        }
+
+        [Test]
+        public void TestExpression3()
+        {
+            ParameterExpression param = Expression.Parameter(typeof(int), "x");
+            Expression<Func<int, int>> exp = Expression.Lambda<Func<int, int>>(Expression.Add(param, Expression.Constant(1, typeof(int))), param);
+        }
+    }
+
+    public class Test
+    {
+        public void TestFunc()
+        {
+            Func<int, int> func = x => x + 1;
+        }
+        public void TestExpression1()
+        {
+            Expression<Func<int, int>> exp = x => x + 1;
+        }
+        public void TestExpression2()
+        {
+            ParameterExpression param = Expression.Parameter(typeof(int), "x");
+            Expression<Func<int, int>> exp = Expression.Lambda<Func<int, int>>(Expression.Add(param, Expression.Constant(1, typeof(int))), param);
         }
     }
 }
